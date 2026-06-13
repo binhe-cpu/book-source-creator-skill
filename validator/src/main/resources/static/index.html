@@ -47,6 +47,11 @@
           <input id="keyword" type="text" placeholder="搜索关键词..." autocomplete="off" />
         </div>
         <select id="source-select"></select>
+        <select id="mode-select">
+          <option value="http">HTTP</option>
+          <option value="browser">Browser</option>
+          <option value="auto">Auto</option>
+        </select>
         <button id="btn-debug" class="btn-run">
           <span class="run-icon">▶</span> 运行
         </button>
@@ -89,6 +94,7 @@
             <button class="dtab" data-tab="response">响应</button>
             <button class="dtab" data-tab="rules">规则命中</button>
             <button class="dtab" data-tab="preview">正文预览</button>
+            <button class="dtab" data-tab="render">渲染结果</button>
           </div>
           <div class="detail-meta" id="detail-meta"></div>
         </div>
@@ -98,6 +104,7 @@
           <div class="dpanel hidden" id="panel-response"></div>
           <div class="dpanel hidden" id="panel-rules"></div>
           <div class="dpanel hidden" id="panel-preview"></div>
+          <div class="dpanel hidden" id="panel-render"></div>
         </div>
       </div>
     </main>

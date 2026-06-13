@@ -75,11 +75,13 @@ document.getElementById('btn-debug').onclick = async () => {
   clearPanels();
   setBtnState('启动中…', true);
 
+  const mode = document.getElementById('mode-select').value;
+
   try {
     const res = await fetch(`${API}/api/debug/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceUrl, keyword })
+      body: JSON.stringify({ sourceUrl, keyword, mode })
     });
     const data = await res.json();
     if (!data.ok) {
@@ -319,6 +321,24 @@ function showStepDetail(step) {
     previewPanel.innerHTML = '<div class="panel-empty">无正文预览</div>';
   }
 
+  // Render
+  const renderPanel = document.getElementById('panel-render');
+  if (step.mode === 'browser' || step.renderedHtmlPreview || step.screenshotBase64) {
+    let html = `<div class="kv-row"><span class="key">模式</span><span class="str">${esc(step.mode)}</span></div>`;
+    if (step.finalUrl) html += `<div class="kv-row"><span class="key">最终URL</span><span class="url">${esc(step.finalUrl)}</span></div>`;
+    if (step.needsAppReview) html += `<div class="kv-row"><span class="key">需App复核</span><span class="err">${esc(step.reviewReason || '是')}</span></div>`;
+    if (step.renderError) html += `<div class="kv-row"><span class="key">渲染错误</span><span class="err">${esc(step.renderError)}</span></div>`;
+    if (step.screenshotBase64) {
+      html += `<div style="margin-top:12px"><img src="data:image/png;base64,${step.screenshotBase64}" style="max-width:100%;border:1px solid var(--border);border-radius:4px" /></div>`;
+    }
+    if (step.renderedHtmlPreview) {
+      html += `<details style="margin-top:12px"><summary class="dim" style="cursor:pointer">渲染后 HTML 预览 (${step.renderedHtmlPreview.length} 字符)</summary><pre style="margin-top:8px;max-height:300px;overflow:auto;font-size:11px">${esc(step.renderedHtmlPreview)}</pre></details>`;
+    }
+    renderPanel.innerHTML = html;
+  } else {
+    renderPanel.innerHTML = '<div class="panel-empty">此步骤未使用浏览器渲染</div>';
+  }
+
   // Show extracted tab by default
   switchTab('extracted');
 }
@@ -335,7 +355,7 @@ document.querySelectorAll('.dtab').forEach(tab => {
 });
 
 function clearPanels() {
-  ['extracted', 'request', 'response', 'rules', 'preview'].forEach(id => {
+  ['extracted', 'request', 'response', 'rules', 'preview', 'render'].forEach(id => {
     const el = document.getElementById(`panel-${id}`);
     if (el) el.innerHTML = '<div class="panel-empty">点击左侧管道步骤查看详情</div>';
   });

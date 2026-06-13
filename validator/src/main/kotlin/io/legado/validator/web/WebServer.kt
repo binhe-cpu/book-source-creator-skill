@@ -84,10 +84,11 @@ class WebServer(port: Int) : NanoWSD(port) {
         val req = com.google.gson.JsonParser.parseString(json).asJsonObject
         val sourceUrl = req.get("sourceUrl")?.asString ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing sourceUrl")
         val keyword = req.get("keyword")?.asString ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing keyword")
+        val mode = req.get("mode")?.asString ?: "http"
         val source = sources[sourceUrl] ?: return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Source not found")
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                debugService.runFull(source, keyword)
+                debugService.runFull(source, keyword, mode)
             } catch (e: Exception) {
                 println("[Debug] Error: ${e.message}")
             }
@@ -118,6 +119,7 @@ class WebServer(port: Int) : NanoWSD(port) {
             val keyword = req.get("keyword")?.asString
                 ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json",
                     """{"ok":false,"error":"Missing keyword"}""")
+            val mode = req.get("mode")?.asString ?: "http"
 
             // Import source
             val list = BookSource.fromJson(sourceJson)
@@ -126,9 +128,10 @@ class WebServer(port: Int) : NanoWSD(port) {
                 ?: return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json",
                     """{"ok":false,"error":"Source not found after import: $sourceUrl"}""")
 
-            // Run debug synchronously
+            // 每次创建独立 DebugService，避免并发串状态
+            val runService = DebugService()
             val steps = runBlocking(Dispatchers.IO) {
-                debugService.runFull(source, keyword)
+                runService.runFull(source, keyword, mode)
             }
 
             // Build compact steps

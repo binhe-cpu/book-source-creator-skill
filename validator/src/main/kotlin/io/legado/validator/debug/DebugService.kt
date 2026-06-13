@@ -1,7 +1,11 @@
 package io.legado.validator.debug
 
+import io.legado.validator.analyzeRule.AnalyzeUrl
+import io.legado.validator.analyzeRule.RuleData
 import io.legado.validator.help.http.StrResponse
 import io.legado.validator.model.*
+import io.legado.validator.render.RenderService
+import io.legado.validator.webBook.BookList
 import io.legado.validator.webBook.WebBook
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -17,15 +21,26 @@ class DebugService {
 
     fun getSteps(): List<DebugStep> = steps.toList()
 
-    suspend fun runFull(source: BookSource, keyword: String): List<DebugStep> {
+    suspend fun runFull(source: BookSource, keyword: String, mode: String = "http"): List<DebugStep> {
         steps.clear()
         val book = Book()
 
         // Step 1: Search
-        val searchStep = runSearch(source, keyword)
+        val searchStep = if (mode == "browser") {
+            runSearchBrowser(source, keyword)
+        } else {
+            val httpStep = runSearch(source, keyword)
+            if (mode == "auto" && httpStep.status == "error") {
+                val browserStep = runSearchBrowser(source, keyword)
+                if (browserStep.status == "success") browserStep else httpStep
+            } else httpStep
+        }
         steps.add(searchStep)
         listener?.invoke(searchStep)
         if (searchStep.status == "error") return steps.toList()
+
+        // 后续步骤继承 search 的实际模式
+        val actualMode = searchStep.mode
 
         val firstBook = searchStep.extracted["firstBook"] as? SearchBook ?: return steps.toList()
         book.bookUrl = firstBook.bookUrl
@@ -34,13 +49,13 @@ class DebugService {
         book.tocUrl = firstBook.bookUrl
 
         // Step 2: Detail
-        val detailStep = runDetail(source, book)
+        val detailStep = runDetail(source, book, actualMode)
         steps.add(detailStep)
         listener?.invoke(detailStep)
         if (detailStep.status == "error") return steps.toList()
 
         // Step 3: TOC
-        val tocStep = runToc(source, book)
+        val tocStep = runToc(source, book, actualMode)
         steps.add(tocStep)
         listener?.invoke(tocStep)
         if (tocStep.status == "error") return steps.toList()
@@ -49,7 +64,7 @@ class DebugService {
 
         // Step 4: Content (first 2 chapters)
         for (ch in chapters.take(2)) {
-            val contentStep = runContent(source, book, ch)
+            val contentStep = runContent(source, book, ch, actualMode)
             steps.add(contentStep)
             listener?.invoke(contentStep)
         }
@@ -151,13 +166,129 @@ class DebugService {
         }
     }
 
-    private suspend fun runDetail(source: BookSource, book: Book): DebugStep {
+    private suspend fun runSearchBrowser(source: BookSource, keyword: String): DebugStep {
+        return withContext(Dispatchers.IO) {
+            val ruleData = RuleData()
+            val searchUrlTemplate = source.searchUrl ?: ""
+            val analyzeUrl = AnalyzeUrl(
+                mUrl = searchUrlTemplate,
+                key = keyword,
+                page = 1,
+                baseUrl = source.bookSourceUrl,
+                source = source,
+                ruleData = ruleData
+            )
+
+            val reqInfo = DebugStep.RequestInfo(
+                url = analyzeUrl.url,
+                method = if (analyzeUrl.isPost()) "POST" else "GET",
+                headers = analyzeUrl.headerMap,
+                body = analyzeUrl.body
+            )
+
+            // POST 请求：浏览器模式暂不支持，标记需 App 复核
+            if (analyzeUrl.isPost()) {
+                return@withContext DebugStep(
+                    phase = "search", status = "error", mode = "browser",
+                    request = reqInfo,
+                    error = "浏览器模式暂不支持 POST 搜索，需 App 复核",
+                    needsAppReview = true,
+                    reviewReason = "POST 搜索需 App 复核"
+                )
+            }
+
+            // GET 请求：让 Python 端用 quote() 编码中文关键词，避免 Java→Python 编码不一致
+            val render = RenderService.render(
+                url = analyzeUrl.url,
+                searchKeyword = keyword,
+                searchUrlTemplate = searchUrlTemplate
+            )
+
+            if (!render.ok) {
+                return@withContext DebugStep(
+                    phase = "search", status = "error", mode = "browser",
+                    request = reqInfo,
+                    error = render.error ?: "浏览器渲染失败",
+                    finalUrl = render.finalUrl,
+                    renderedHtmlPreview = render.html?.take(2000),
+                    screenshotBase64 = render.screenshot,
+                    renderError = render.error,
+                    needsAppReview = render.needsAppReview,
+                    reviewReason = render.reviewReason
+                )
+            }
+
+            // Cloudflare/验证码检测
+            if (render.needsAppReview) {
+                return@withContext DebugStep(
+                    phase = "search", status = "error", mode = "browser",
+                    request = reqInfo,
+                    error = render.reviewReason ?: "需 App 复核",
+                    finalUrl = render.finalUrl,
+                    renderedHtmlPreview = render.html?.take(2000),
+                    screenshotBase64 = render.screenshot,
+                    needsAppReview = true,
+                    reviewReason = render.reviewReason
+                )
+            }
+
+            // 用书源规则解析渲染后的 HTML
+            val html = render.html ?: ""
+            val baseUrl = render.finalUrl ?: analyzeUrl.url
+            try {
+                val books = BookList.analyzeBookList(
+                    bookSource = source,
+                    ruleData = ruleData,
+                    analyzeUrl = analyzeUrl,
+                    baseUrl = baseUrl,
+                    body = html,
+                    isSearch = true
+                )
+                val first = books.firstOrNull()
+                if (first != null) {
+                    DebugStep(
+                        phase = "search", status = "success", mode = "browser",
+                        request = reqInfo,
+                        extracted = mapOf(
+                            "resultCount" to books.size,
+                            "firstBook" to first,
+                            "books" to books.take(10)
+                        ),
+                        finalUrl = render.finalUrl,
+                        renderedHtmlPreview = html.take(2000),
+                        screenshotBase64 = render.screenshot
+                    )
+                } else {
+                    DebugStep(
+                        phase = "search", status = "error", mode = "browser",
+                        request = reqInfo,
+                        error = "浏览器渲染成功但规则解析无结果 (列表大小:0)",
+                        finalUrl = render.finalUrl,
+                        renderedHtmlPreview = html.take(2000),
+                        screenshotBase64 = render.screenshot
+                    )
+                }
+            } catch (e: Exception) {
+                DebugStep(
+                    phase = "search", status = "error", mode = "browser",
+                    request = reqInfo,
+                    error = "规则解析异常: ${e::class.simpleName}: ${e.message}",
+                    finalUrl = render.finalUrl,
+                    renderedHtmlPreview = html.take(2000),
+                    screenshotBase64 = render.screenshot,
+                    renderError = e.message
+                )
+            }
+        }
+    }
+
+    private suspend fun runDetail(source: BookSource, book: Book, mode: String = "http"): DebugStep {
         return withContext(Dispatchers.IO) {
             try {
                 val result = WebBook.getBookInfoAwait(source, book)
                 val res = WebBook.lastResponse
                 DebugStep(
-                    phase = "detail", status = "success",
+                    phase = "detail", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
                     extracted = mapOf(
@@ -170,7 +301,7 @@ class DebugService {
                 )
             } catch (e: Exception) {
                 DebugStep(
-                    phase = "detail", status = "error",
+                    phase = "detail", status = "error", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(WebBook.lastResponse),
                     error = "${e::class.simpleName}: ${e.message}"
@@ -179,13 +310,13 @@ class DebugService {
         }
     }
 
-    private suspend fun runToc(source: BookSource, book: Book): DebugStep {
+    private suspend fun runToc(source: BookSource, book: Book, mode: String = "http"): DebugStep {
         return withContext(Dispatchers.IO) {
             try {
                 val chapters = WebBook.getChapterListAwait(source, book)
                 val res = WebBook.lastResponse
                 DebugStep(
-                    phase = "toc", status = "success",
+                    phase = "toc", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
                     extracted = mapOf(
@@ -196,7 +327,7 @@ class DebugService {
                 )
             } catch (e: Exception) {
                 DebugStep(
-                    phase = "toc", status = "error",
+                    phase = "toc", status = "error", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(WebBook.lastResponse),
                     error = "${e::class.simpleName}: ${e.message}"
@@ -205,13 +336,13 @@ class DebugService {
         }
     }
 
-    private suspend fun runContent(source: BookSource, book: Book, chapter: BookChapter): DebugStep {
+    private suspend fun runContent(source: BookSource, book: Book, chapter: BookChapter, mode: String = "http"): DebugStep {
         return withContext(Dispatchers.IO) {
             try {
                 val content = WebBook.getContentAwait(source, book, chapter)
                 val res = WebBook.lastResponse
                 DebugStep(
-                    phase = "content", status = "success",
+                    phase = "content", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
                     extracted = mapOf(
@@ -222,7 +353,7 @@ class DebugService {
                 )
             } catch (e: Exception) {
                 DebugStep(
-                    phase = "content", status = "error",
+                    phase = "content", status = "error", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(WebBook.lastResponse),
                     error = "${e::class.simpleName}: ${e.message}"

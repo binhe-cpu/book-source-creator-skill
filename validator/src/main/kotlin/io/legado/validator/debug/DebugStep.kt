@@ -4,12 +4,20 @@ data class DebugStep(
     val phase: String,
     val status: String,
     val timestamp: Long = System.currentTimeMillis(),
+    val mode: String = "http",              // "http" | "browser"
     val request: RequestInfo? = null,
     val response: ResponseInfo? = null,
     val ruleHits: List<RuleHit> = emptyList(),
     val extracted: Map<String, Any?> = emptyMap(),
     val error: String? = null,
-    val preview: String? = null
+    val preview: String? = null,
+    // 渲染相关字段
+    val finalUrl: String? = null,
+    val renderedHtmlPreview: String? = null,
+    val screenshotBase64: String? = null,
+    val renderError: String? = null,
+    val needsAppReview: Boolean = false,
+    val reviewReason: String? = null
 ) {
     data class RequestInfo(val url: String, val method: String, val headers: Map<String, String>, val body: String?)
     data class ResponseInfo(val code: Int, val contentType: String?, val bodyPreview: String, val bodyLength: Int)
