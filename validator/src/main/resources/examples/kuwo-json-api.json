@@ -1,0 +1,15 @@
+{
+  "name": "酷我小说 — 纯 API/JSON",
+  "category": "json-api",
+  "sourceFile": "candidates/xiu2-yuedu/kuwo.json",
+  "sourceUrl": "http://appi.kuwo.cn",
+  "keyword": "凡人修仙传",
+  "mode": "http",
+  "expected": {
+    "search": {
+      "status": "error",
+      "note": "已知限制：searchUrl 是相对路径 (/novels/api/...)，validator 的 AnalyzeUrl 未正确拼接 baseUrl"
+    }
+  },
+  "note": "纯 JSON API 站。searchUrl 为相对路径，需修复 AnalyzeUrl 的 URL 拼接逻辑"
+}

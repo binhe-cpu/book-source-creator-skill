@@ -123,7 +123,11 @@ class WebServer(port: Int) : NanoWSD(port) {
             val mode = req.get("mode")?.asString ?: "http"
 
             // Import source
-            val list = BookSource.fromJson(sourceJson)
+            val list = try {
+                BookSource.fromJson(sourceJson)
+            } catch (_: Exception) {
+                listOf(BookSource.fromJsonObject(sourceJson))
+            }
             list.forEach { sources[it.bookSourceUrl] = it }
             val source = sources[sourceUrl]
                 ?: return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json",
@@ -209,7 +213,7 @@ class WebServer(port: Int) : NanoWSD(port) {
                 }
             } else {
                 // Read from classpath
-                val caseNames = listOf("biquges-full-pipeline", "69shuba-cloudflare", "163zw-js-rules", "json-api-placeholder")
+                val caseNames = listOf("biquges-full-pipeline", "69shuba-cloudflare", "163zw-js-rules", "json-api-placeholder", "kuwo-json-api", "zhide-crypto", "qidian-anti-scraping")
                 for (name in caseNames) {
                     val stream = javaClass.getResourceAsStream("/examples/cases/$name.json")
                         ?: javaClass.getResourceAsStream("/examples/$name.json")
@@ -243,8 +247,12 @@ class WebServer(port: Int) : NanoWSD(port) {
                             if (sf.exists()) sf.readText() else null
                         }
                         sourceFileName != null -> {
+                            val baseName = sourceFileName.substringAfterLast("/")
                             val stream = javaClass.getResourceAsStream("/examples/$sourceFileName")
-                                ?: javaClass.getResourceAsStream("/examples/sources/${sourceFileName.substringAfterLast("/")}")
+                                ?: javaClass.getResourceAsStream("/examples/sources/$baseName")
+                                ?: javaClass.getResourceAsStream("/examples/candidates/local-reference/$baseName")
+                                ?: javaClass.getResourceAsStream("/examples/candidates/xiu2-yuedu/$baseName")
+                                ?: javaClass.getResourceAsStream("/examples/candidates/entr0pia/$baseName")
                             stream?.readBytes()?.toString(Charsets.UTF_8)
                         }
                         else -> null
@@ -254,7 +262,12 @@ class WebServer(port: Int) : NanoWSD(port) {
                         continue
                     }
 
-                    val sourceList = BookSource.fromJson(sourceJson)
+                    val sourceList = try {
+                        BookSource.fromJson(sourceJson)
+                    } catch (_: Exception) {
+                        // Try as single object
+                        listOf(BookSource.fromJsonObject(sourceJson))
+                    }
                     sourceList.forEach { sources[it.bookSourceUrl] = it }
                     val source = sourceList.firstOrNull()
                     if (source == null) {

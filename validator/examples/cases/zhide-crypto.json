@@ -1,0 +1,15 @@
+{
+  "name": "值得阅读 — md5 签名 + AES 解密",
+  "category": "crypto",
+  "sourceFile": "candidates/entr0pia/zhide.json",
+  "sourceUrl": "https://s.lansheweb.com",
+  "keyword": "凡人修仙传",
+  "mode": "http",
+  "expected": {
+    "search": {
+      "status": "error",
+      "note": "已知限制：bookUrl 用 @js: 规则动态生成 URL，validator 未支持 @js: 在 URL 字段的执行"
+    }
+  },
+  "note": "验证 Phase 3 crypto: md5Encode 签名 header + AES/CBC/PKCS5Padding 内容解密。bookUrl 用 @js: 动态生成 URL 是已知限制"
+}

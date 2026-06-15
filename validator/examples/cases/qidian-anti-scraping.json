@@ -1,0 +1,15 @@
+{
+  "name": "起点中文 — Cookie 验证 + 反爬",
+  "category": "anti-scraping",
+  "sourceFile": "candidates/xiu2-yuedu/qidian.json",
+  "sourceUrl": "https://www.qidian.com",
+  "keyword": "凡人修仙传",
+  "mode": "http",
+  "expected": {
+    "search": {
+      "status": "error",
+      "note": "起点搜索需要 Cookie 验证，HTTP 模式预期失败"
+    }
+  },
+  "note": "大站反爬样例：Cookie 验证 + enabledCookieJar，预期 needsAppReview"
+}
