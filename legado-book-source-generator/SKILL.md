@@ -81,6 +81,8 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 17. **CSR/WebView 边界先跑 auto** — 遇到正文 CSR/WebView 边界时，先跑 `mode=auto` 或 `mode=browser`，失败后再标 `validator_limitation`。
 18. **交付前文件完整性检查** — 最终交付前必须确认 `runs/<site-slug>/` 下 5 个文件齐全：`assessment.md`、`analysis.md`、`validation-checklist.md`、`validator-report.json`、`validator-summary.md`。缺一不可。
 19. **禁止空字符串可选字段** — `book-source.json` 中可选字段要么填有效值，要么删除，不得保留空字符串 `""`。
+20. **validator passed ≠ 质量 pass** — validator 只验证技术链路，不验证书源质量。若目录章节 URL 为空、所有章节指向同一全文页、章节无法独立定位、或 TOC 是伪章节，不能标 full pass，只能标 degraded（可导入但阅读体验降级）。
+21. **ruleToc.chapterUrl 不得为空** — 多章节时必须能生成稳定且可区分的章节 URL。如果只能全书单页阅读，必须在 summary 中标 degraded，不能说全链路可用。
 
 ## 输出结构
 
@@ -126,6 +128,7 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 
 最终回复用户时，根据 validator 结果给一句：
 - passed: "已生成 book-source.json，validator 验证通过（全链路成功）。"
+- degraded: "已生成 book-source.json，技术链路通过但阅读体验降级（原因：xxx）。可导入，但建议 App 端确认章节体验。"
 - needs_app_review: "已生成 book-source.json，validator 检测到需 App 复核（原因：xxx）。报告见 validator-report.json。"
 - failed_unresolved: "已生成 book-source.json，validator 回修 3 次后仍未通过。报告见 validator-report.json，需人工检查。"
 - validator_limitation: "已生成 book-source.json，validator 无法验证 xxx 能力；预期需要 App/WebView 复核。当前不是 full pass，不能标可用。"

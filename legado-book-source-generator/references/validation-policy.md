@@ -71,3 +71,18 @@
 - content: status=success, contentLength >= 100
 
 不满足则不能标"可用"。
+
+## 质量门槛
+
+**validator passed ≠ 质量 pass。** validator 只验证技术链路，不验证书源质量。
+
+以下情况不能标 full pass，只能标 degraded（可导入但阅读体验降级）：
+- `ruleToc.chapterUrl` 为空
+- 所有章节指向同一全文页
+- 章节无法独立定位（URL 不可区分）
+- TOC 是伪章节（非真实章节列表）
+
+**ruleToc.chapterUrl 检查**：
+- 不得为空
+- 多章节时必须能生成稳定且可区分的章节 URL
+- 如果只能全书单页阅读，必须在 summary 中标 degraded
