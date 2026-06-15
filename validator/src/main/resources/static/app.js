@@ -310,7 +310,7 @@ function showStepDetail(step) {
       `${r.success ? '<span class="ok">✓</span>' : '<span class="err">✗</span>'} <span class="key">[${esc(r.field)}]</span> <span class="dim">${esc(r.rule)}</span>\n  → ${r.value ? esc(r.value) : '<span class="dim">(空)</span>'}`
     ).join('\n\n');
   } else {
-    rulesPanel.innerHTML = '<div class="panel-empty">暂无规则命中记录 (Phase 2)</div>';
+    rulesPanel.innerHTML = '<div class="panel-empty">暂无规则命中记录</div>';
   }
 
   // Preview

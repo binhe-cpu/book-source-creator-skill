@@ -10,6 +10,9 @@ import kotlin.coroutines.coroutineContext
 
 object BookContent {
 
+    var lastRuleHits: List<AnalyzeRule.RuleHitEntry> = emptyList()
+        private set
+
     suspend fun analyzeContent(
         bookSource: BookSource,
         book: Book,
@@ -122,7 +125,7 @@ object BookContent {
         val rUrl = analyzeRule.setRedirectUrl(redirectUrl)
         analyzeRule.chapter = chapter
         val nextUrlList = arrayListOf<String>()
-        var content = analyzeRule.getString(contentRule.content)
+        var content = analyzeRule.setFieldName("content").getString(contentRule.content)
         content = stripHtmlTagsKeepNewlines(content)
         if (getNextPageUrl) {
             val nextUrlRule = contentRule.nextContentUrl
@@ -134,6 +137,7 @@ object BookContent {
                 DebugLog.log("└" + nextUrlList.joinToString("，"))
             }
         }
+        lastRuleHits = analyzeRule.ruleHits.toList()
         return Pair(content, nextUrlList)
     }
 

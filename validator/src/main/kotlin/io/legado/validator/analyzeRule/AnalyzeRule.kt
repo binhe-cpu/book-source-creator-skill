@@ -50,6 +50,25 @@ class AnalyzeRule(
     private val stringRuleCache = hashMapOf<String, List<SourceRule>>()
     private var coroutineContext: CoroutineContext = EmptyCoroutineContext
 
+    // Phase 4: rule hit tracking
+    data class RuleHitEntry(
+        val field: String,
+        val rule: String,
+        val mode: String,
+        val inputType: String,
+        val matchedCount: Int,
+        val value: String?,
+        val success: Boolean
+    )
+
+    val ruleHits = mutableListOf<RuleHitEntry>()
+    private var currentFieldName: String = ""
+
+    fun setFieldName(name: String): AnalyzeRule {
+        currentFieldName = name
+        return this
+    }
+
     @JvmOverloads
     fun setContent(content: Any?, baseUrl: String? = null): AnalyzeRule {
         if (content == null) throw AssertionError("内容不可空")
@@ -183,7 +202,12 @@ class AnalyzeRule(
             return urlList
         }
         @Suppress("UNCHECKED_CAST")
-        return result as? List<String>
+        val listResult = result as? List<String>
+        if (currentFieldName.isNotEmpty()) {
+            val count = listResult?.size ?: 0
+            ruleHits.add(RuleHitEntry(currentFieldName, ruleList.joinToString("##") { it.rule }, "getStringList", "list", count, listResult?.take(3)?.joinToString(", ")?.take(200), count > 0))
+        }
+        return listResult
     }
 
     @JvmOverloads
@@ -234,8 +258,14 @@ class AnalyzeRule(
             StringEscapeUtils.unescapeHtml4(resultStr)
         } else resultStr
         if (isUrl) {
-            return if (str.isBlank()) baseUrl ?: ""
-            else getAbsoluteURL(redirectUrl, str)
+            val urlResult = if (str.isBlank()) baseUrl ?: "" else getAbsoluteURL(redirectUrl, str)
+            if (currentFieldName.isNotEmpty()) {
+                ruleHits.add(RuleHitEntry(currentFieldName, ruleList.joinToString("##") { it.rule }, "getString", "url", if (urlResult.isNotBlank()) 1 else 0, urlResult.take(200), urlResult.isNotBlank()))
+            }
+            return urlResult
+        }
+        if (currentFieldName.isNotEmpty()) {
+            ruleHits.add(RuleHitEntry(currentFieldName, ruleList.joinToString("##") { it.rule }, "getString", "text", if (str.isNotBlank()) 1 else 0, str.take(200), str.isNotBlank()))
         }
         return str
     }

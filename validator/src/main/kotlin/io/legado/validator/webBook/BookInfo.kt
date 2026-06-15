@@ -9,6 +9,9 @@ import kotlin.coroutines.coroutineContext
 
 object BookInfo {
 
+    var lastRuleHits: List<AnalyzeRule.RuleHitEntry> = emptyList()
+        private set
+
     suspend fun analyzeBookInfo(
         bookSource: BookSource,
         book: Book,
@@ -46,7 +49,7 @@ object BookInfo {
         val mCanReName = canReName && !infoRule.canReName.isNullOrBlank()
         coroutineContext.ensureActive()
         DebugLog.log("┌获取书名")
-        analyzeRule.getString(infoRule.name).trim().let {
+        analyzeRule.setFieldName("name").getString(infoRule.name).trim().let {
             if (it.isNotEmpty() && (mCanReName || book.name.isEmpty())) {
                 book.name = it
             }
@@ -54,7 +57,7 @@ object BookInfo {
         }
         coroutineContext.ensureActive()
         DebugLog.log("┌获取作者")
-        analyzeRule.getString(infoRule.author).trim().let {
+        analyzeRule.setFieldName("author").getString(infoRule.author).trim().let {
             if (it.isNotEmpty() && (mCanReName || book.author.isEmpty())) {
                 book.author = it
             }
@@ -63,7 +66,7 @@ object BookInfo {
         coroutineContext.ensureActive()
         DebugLog.log("┌获取分类")
         try {
-            analyzeRule.getStringList(infoRule.kind)
+            analyzeRule.setFieldName("kind").getStringList(infoRule.kind)
                 ?.joinToString(",")
                 ?.let {
                     if (it.isNotEmpty()) book.kind = it
@@ -75,7 +78,7 @@ object BookInfo {
         coroutineContext.ensureActive()
         DebugLog.log("┌获取字数")
         try {
-            analyzeRule.getString(infoRule.wordCount).let {
+            analyzeRule.setFieldName("wordCount").getString(infoRule.wordCount).let {
                 if (it.isNotEmpty()) book.wordCount = it
                 DebugLog.log("└$it")
             }
@@ -85,7 +88,7 @@ object BookInfo {
         coroutineContext.ensureActive()
         DebugLog.log("┌获取最新章节")
         try {
-            analyzeRule.getString(infoRule.lastChapter).let {
+            analyzeRule.setFieldName("lastChapter").getString(infoRule.lastChapter).let {
                 if (it.isNotEmpty()) book.lastChapter = it
                 DebugLog.log("└$it")
             }
@@ -95,7 +98,7 @@ object BookInfo {
         coroutineContext.ensureActive()
         DebugLog.log("┌获取简介")
         try {
-            stripHtmlTags(analyzeRule.getString(infoRule.intro)).let {
+            stripHtmlTags(analyzeRule.setFieldName("intro").getString(infoRule.intro)).let {
                 if (it.isNotEmpty()) book.intro = it
                 DebugLog.log("└$it")
             }
@@ -105,7 +108,7 @@ object BookInfo {
         coroutineContext.ensureActive()
         DebugLog.log("┌获取封面链接")
         try {
-            analyzeRule.getString(infoRule.coverUrl).let {
+            analyzeRule.setFieldName("coverUrl").getString(infoRule.coverUrl).let {
                 if (it.isNotEmpty()) {
                     book.coverUrl = getAbsoluteURL(redirectUrl, it)
                 }
@@ -116,9 +119,10 @@ object BookInfo {
         }
         coroutineContext.ensureActive()
         DebugLog.log("┌获取目录链接")
-        book.tocUrl = analyzeRule.getString(infoRule.tocUrl, isUrl = true)
+        book.tocUrl = analyzeRule.setFieldName("tocUrl").getString(infoRule.tocUrl, isUrl = true)
         if (book.tocUrl.isEmpty()) book.tocUrl = baseUrl
         DebugLog.log("└${book.tocUrl}")
+        lastRuleHits = analyzeRule.ruleHits.toList()
     }
 
     private fun stripHtmlTags(html: String): String {

@@ -12,6 +12,9 @@ import kotlin.coroutines.coroutineContext
 
 object BookList {
 
+    var lastRuleHits: List<AnalyzeRule.RuleHitEntry> = emptyList()
+        private set
+
     suspend fun analyzeBookList(
         bookSource: BookSource,
         ruleData: RuleData,
@@ -83,6 +86,7 @@ object BookList {
             }
         }
         DebugLog.log("◇书籍总数:${bookList.size}")
+        lastRuleHits = analyzeRule.ruleHits.toList()
         return bookList
     }
 
@@ -132,17 +136,17 @@ object BookList {
         analyzeRule.setContent(item)
             coroutineContext.ensureActive()
             DebugLog.log("┌获取书名")
-            searchBook.name = analyzeRule.getString(ruleName).trim()
+            searchBook.name = analyzeRule.setFieldName("name").getString(ruleName).trim()
             DebugLog.log("└${searchBook.name}")
         if (searchBook.name.isNotEmpty()) {
             coroutineContext.ensureActive()
             DebugLog.log("┌获取作者")
-            searchBook.author = analyzeRule.getString(ruleAuthor).trim()
+            searchBook.author = analyzeRule.setFieldName("author").getString(ruleAuthor).trim()
             DebugLog.log("└${searchBook.author}")
             coroutineContext.ensureActive()
             DebugLog.log("┌获取分类")
             try {
-                searchBook.kind = analyzeRule.getStringList(ruleKind)?.joinToString(",") ?: ""
+                searchBook.kind = analyzeRule.setFieldName("kind").getStringList(ruleKind)?.joinToString(",") ?: ""
                 DebugLog.log("└${searchBook.kind}")
             } catch (e: Exception) {
                 DebugLog.log("└${e.localizedMessage}")
@@ -150,7 +154,7 @@ object BookList {
             coroutineContext.ensureActive()
             DebugLog.log("┌获取字数")
             try {
-                searchBook.wordCount = analyzeRule.getString(ruleWordCount)
+                searchBook.wordCount = analyzeRule.setFieldName("wordCount").getString(ruleWordCount)
                 DebugLog.log("└${searchBook.wordCount}")
             } catch (e: Exception) {
                 DebugLog.log("└${e.localizedMessage}")
@@ -158,7 +162,7 @@ object BookList {
             coroutineContext.ensureActive()
             DebugLog.log("┌获取最新章节")
             try {
-                searchBook.lastChapter = analyzeRule.getString(ruleLastChapter)
+                searchBook.lastChapter = analyzeRule.setFieldName("lastChapter").getString(ruleLastChapter)
                 DebugLog.log("└${searchBook.lastChapter}")
             } catch (e: Exception) {
                 DebugLog.log("└${e.localizedMessage}")
@@ -166,7 +170,7 @@ object BookList {
             coroutineContext.ensureActive()
             DebugLog.log("┌获取简介")
             try {
-                searchBook.intro = stripHtmlTags(analyzeRule.getString(ruleIntro))
+                searchBook.intro = stripHtmlTags(analyzeRule.setFieldName("intro").getString(ruleIntro))
                 DebugLog.log("└${searchBook.intro}")
             } catch (e: Exception) {
                 DebugLog.log("└${e.localizedMessage}")
@@ -174,7 +178,7 @@ object BookList {
             coroutineContext.ensureActive()
             DebugLog.log("┌获取封面链接")
             try {
-                analyzeRule.getString(ruleCoverUrl).let {
+                analyzeRule.setFieldName("coverUrl").getString(ruleCoverUrl).let {
                     if (it.isNotEmpty()) {
                         searchBook.coverUrl = getAbsoluteURL(baseUrl, it)
                     }
@@ -185,7 +189,7 @@ object BookList {
             }
             coroutineContext.ensureActive()
             DebugLog.log("┌获取详情页链接")
-            searchBook.bookUrl = analyzeRule.getString(ruleBookUrl, isUrl = true)
+            searchBook.bookUrl = analyzeRule.setFieldName("bookUrl").getString(ruleBookUrl, isUrl = true)
             if (searchBook.bookUrl.isEmpty()) {
                 searchBook.bookUrl = baseUrl
             }

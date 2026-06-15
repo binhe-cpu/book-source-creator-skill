@@ -11,6 +11,9 @@ import kotlin.coroutines.coroutineContext
 
 object BookChapterList {
 
+    var lastRuleHits: List<AnalyzeRule.RuleHitEntry> = emptyList()
+        private set
+
     suspend fun analyzeChapterList(
         bookSource: BookSource,
         book: Book,
@@ -141,9 +144,9 @@ object BookChapterList {
                 analyzeRule.setContent(item)
                 val bookChapter = BookChapter(baseUrl = redirectUrl)
                 analyzeRule.chapter = bookChapter
-                bookChapter.title = analyzeRule.getString(nameRule)
-                bookChapter.url = getAbsoluteURL(redirectUrl, analyzeRule.getString(urlRule))
-                val isVolume = analyzeRule.getString(isVolumeRule)
+                bookChapter.title = analyzeRule.setFieldName("chapterName").getString(nameRule)
+                bookChapter.url = getAbsoluteURL(redirectUrl, analyzeRule.setFieldName("chapterUrl").getString(urlRule))
+                val isVolume = analyzeRule.setFieldName("isVolume").getString(isVolumeRule)
                 if (isVolume == "true" || isVolume == "1") {
                     // isVolume not in validator model, skip
                 }
@@ -168,6 +171,7 @@ object BookChapterList {
                 DebugLog.log("◇章节链接:${chapterList[0].url}")
             }
         }
+        lastRuleHits = analyzeRule.ruleHits.toList()
         return Pair(chapterList, nextUrlList)
     }
 

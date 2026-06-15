@@ -1,5 +1,6 @@
 package io.legado.validator.webBook
 
+import io.legado.validator.analyzeRule.AnalyzeRule
 import io.legado.validator.analyzeRule.AnalyzeUrl
 import io.legado.validator.analyzeRule.RuleData
 import io.legado.validator.help.http.StrResponse
@@ -15,6 +16,8 @@ object WebBook {
     var lastResponse: StrResponse? = null
         private set
     var lastAnalyzeUrl: AnalyzeUrl? = null
+        private set
+    var lastRuleHits: List<AnalyzeRule.RuleHitEntry> = emptyList()
         private set
 
     suspend fun searchBookAwait(

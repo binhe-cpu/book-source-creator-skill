@@ -1,10 +1,13 @@
 package io.legado.validator.debug
 
 import io.legado.validator.analyzeRule.AnalyzeUrl
+import io.legado.validator.analyzeRule.AnalyzeRule
 import io.legado.validator.analyzeRule.RuleData
 import io.legado.validator.help.http.StrResponse
 import io.legado.validator.model.*
 import io.legado.validator.render.RenderService
+import io.legado.validator.webBook.BookChapterList
+import io.legado.validator.webBook.BookContent
 import io.legado.validator.webBook.BookList
 import io.legado.validator.webBook.WebBook
 import kotlinx.coroutines.*
@@ -72,6 +75,10 @@ class DebugService {
         return steps.toList()
     }
 
+    private fun toRuleHits(entries: List<AnalyzeRule.RuleHitEntry>): List<DebugStep.RuleHit> {
+        return entries.map { DebugStep.RuleHit(it.field, "${it.mode}:${it.rule}", it.value, it.success) }
+    }
+
     private fun buildResponseInfo(res: StrResponse?): DebugStep.ResponseInfo? {
         if (res == null) return null
         val bodyPreview = res.body.take(2000)
@@ -130,6 +137,7 @@ class DebugService {
                     DebugStep(
                         phase = "search", status = "success",
                         request = reqInfo, response = resInfo,
+                        ruleHits = toRuleHits(WebBook.lastRuleHits),
                         extracted = mapOf(
                             "resultCount" to books.size,
                             "firstBook" to first,
@@ -291,6 +299,7 @@ class DebugService {
                     phase = "detail", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
+                    ruleHits = toRuleHits(WebBook.lastRuleHits),
                     extracted = mapOf(
                         "name" to result.name,
                         "author" to result.author,
@@ -319,6 +328,7 @@ class DebugService {
                     phase = "toc", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
+                    ruleHits = toRuleHits(BookChapterList.lastRuleHits),
                     extracted = mapOf(
                         "chapterCount" to chapters.size,
                         "chapters" to chapters,
@@ -345,6 +355,7 @@ class DebugService {
                     phase = "content", status = "success", mode = mode,
                     request = buildRequestInfo(),
                     response = buildResponseInfo(res),
+                    ruleHits = toRuleHits(BookContent.lastRuleHits),
                     extracted = mapOf(
                         "chapterTitle" to chapter.title,
                         "contentLength" to content.length
