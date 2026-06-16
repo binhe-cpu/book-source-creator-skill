@@ -33,6 +33,9 @@ class AnalyzeUrl(
     private var charset: String? = null
 
     init {
+        if (baseUrl.isEmpty()) {
+            baseUrl = source?.bookSourceUrl ?: ""
+        }
         headerMap.putAll(source?.getHeaderMap() ?: emptyMap())
         initUrl()
     }
@@ -56,6 +59,13 @@ class AnalyzeUrl(
             }
             matcher.appendTail(sb)
             mUrl = sb.toString()
+        }
+
+        // 相对 URL 拼接
+        if (!mUrl.startsWith("http://") && !mUrl.startsWith("https://") && baseUrl.isNotEmpty()) {
+            mUrl = try {
+                java.net.URL(java.net.URL(baseUrl), mUrl).toString()
+            } catch (e: Exception) { mUrl }
         }
 
         // 解析 URL, method, body
