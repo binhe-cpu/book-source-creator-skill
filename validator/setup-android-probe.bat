@@ -19,18 +19,30 @@ if not exist "%APK%" (
 )
 
 echo Checking adb...
+set "LOCAL_ADB=%~dp0tools\platform-tools\adb.exe"
+set "ADB=%LOCAL_ADB%"
+if exist "%LOCAL_ADB%" (
+    goto :adb_ready
+)
+
 set ADB=adb
 adb version >nul 2>&1
 if errorlevel 1 (
     if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" (
         set ADB=%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
     ) else (
-        echo ERROR: adb not found in PATH
-        echo Please install Android SDK Platform Tools
-        exit /b 1
+        echo adb not found. Installing Android SDK Platform-Tools locally...
+        call "%~dp0setup-adb.bat"
+        if errorlevel 1 exit /b 1
+        if not exist "%LOCAL_ADB%" (
+            echo ERROR: adb install completed but adb.exe was not found.
+            exit /b 1
+        )
+        set "ADB=%LOCAL_ADB%"
     )
 )
 
+:adb_ready
 echo Checking devices...
 for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices') do (
     if "%%b"=="device" (

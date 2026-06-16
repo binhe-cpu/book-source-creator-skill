@@ -116,6 +116,7 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 
 - **每次验证前先探测** `http://localhost:1111/api/sources`（禁止用 `/health`，该端点不存在），已有服务则复用，不重复启动。
 - **用户手动启动**：双击 `run.bat`，可见窗口，标题显示地址，Ctrl+C 或关窗口停止。
+- **Android Probe 需要 adb**：若找不到 adb，先运行 `validator/setup-adb.bat` 下载官方 Platform-Tools 到 `validator/tools/platform-tools/`，再运行 `validator/setup-android-probe.bat`。
 - **AI 启动**：前台运行或后台启动但必须：
   - 在回复中说明服务地址、启动方式、停止方式
   - 若后台启动，记录 PID 到 `runs/<site-slug>/validator.pid`

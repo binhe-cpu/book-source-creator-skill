@@ -11,6 +11,8 @@ Validator 是本地书源预验证工具，运行在 `http://localhost:1111`。S
 ```text
 validator/
   run.bat
+  setup-adb.bat
+  setup-android-probe.bat
   app/legado-source-validator.jar
   examples/
 ```
@@ -40,7 +42,7 @@ curl -X POST http://localhost:1111/api/debug/run \
 - `sourceJson`：书源 JSON 字符串（数组或单对象均可）
 - `sourceUrl`：书源的 bookSourceUrl
 - `keyword`：搜索关键词
-- `mode`：`http` | `browser` | `auto`
+- `mode`：`http` | `browser` | `android` | `auto`
 
 返回：
 ```json
@@ -128,6 +130,16 @@ curl -s http://localhost:1111/api/sources >nul 2>&1 && echo Running || echo Not 
 **禁止用 `/health` 探测（该端点不存在，返回 404）。只用 `/api/sources`。**
 
 已有服务则复用，不重复启动。
+
+### Android Probe / adb
+
+使用 `mode=android` 或 `mode=auto` 处理 `webView:true` / `webJs` 时需要 adb 和已连接 Android 设备/模拟器。
+
+- 缺 adb：运行 `validator/setup-adb.bat`，脚本会从 Google 官方地址下载 Windows Platform-Tools 到 `validator/tools/platform-tools/`
+- 安装并启动 Probe：运行 `validator/setup-android-probe.bat`
+- 找不到设备：返回 `validator_limitation` / `Android Probe 不可用: No Android devices connected`
+
+`setup-adb.bat` 不把 adb 写入仓库，也不写系统目录；只安装到当前 validator 运行包。
 
 ### 启动
 

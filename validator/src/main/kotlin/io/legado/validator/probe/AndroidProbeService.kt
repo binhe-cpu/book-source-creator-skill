@@ -44,7 +44,18 @@ object AndroidProbeService {
     private const val PROBE_PORT = 18888
     private const val LOCAL_PORT = 18888
 
+    internal fun findLocalAdb(baseDir: File = File(".")): String? {
+        val candidates = listOf(
+            File(baseDir, "tools/platform-tools/adb.exe"),
+            File(baseDir, "tools/platform-tools/adb"),
+            File(baseDir, "validator/tools/platform-tools/adb.exe"),
+            File(baseDir, "validator/tools/platform-tools/adb")
+        )
+        return candidates.firstOrNull { it.exists() }?.absolutePath
+    }
+
     fun findAdb(): String? {
+        findLocalAdb()?.let { return it }
         val androidHome = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
         if (androidHome != null) {
             val adb = File(androidHome, "platform-tools/adb.exe")

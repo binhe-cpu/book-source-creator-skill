@@ -29,13 +29,19 @@ Legado 书源生成与验证工具
 可选：
 
 - Node.js 18+：运行 scripts\ 里的辅助脚本时需要
-- adb / Android Studio / Android SDK Platform Tools：使用 Android WebView Probe 时需要
+- adb / Android SDK Platform Tools：使用 Android WebView Probe 时需要；可用 validator\setup-adb.bat 自动下载
 
 Windows 常见 adb 路径：
 
 %LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
 
-validator 会自动查找 ANDROID_HOME、ANDROID_SDK_ROOT、上述默认路径和 PATH 里的 adb。
+validator 会自动查找 validator\tools\platform-tools、ANDROID_HOME、ANDROID_SDK_ROOT、上述默认路径和 PATH 里的 adb。
+
+自动安装 adb：
+
+双击 validator\setup-adb.bat
+
+该脚本会从 Google 官方地址下载 Windows Platform-Tools，并解压到 validator\tools\platform-tools。它不会把 adb.exe 写入系统目录。
 
 如果需要手动配置：
 
@@ -57,6 +63,7 @@ Android Probe 用于复核带 webView:true / webJs 的书源链路。
 
 setup 脚本会：
 
+- 找不到 adb 时自动调用 validator\setup-adb.bat
 - 安装 validator\android-probe.apk
 - 启动 io.legado.probe/.WebViewProbeActivity
 - 建立 localhost:18888 -> device:18888 端口转发

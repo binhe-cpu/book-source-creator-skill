@@ -4,8 +4,24 @@ import io.legado.validator.probe.AndroidProbeService
 import io.legado.validator.probe.ProbeRenderRequest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.io.File
+import java.nio.file.Files
 
 class P9ProbeTest {
+
+    @Test
+    fun `local platform tools adb is detected`() {
+        val dir = Files.createTempDirectory("validator-adb-test").toFile()
+        try {
+            val adb = File(dir, "tools/platform-tools/adb.exe")
+            adb.parentFile.mkdirs()
+            adb.writeText("fake")
+
+            assertEquals(adb.absolutePath, AndroidProbeService.findLocalAdb(dir))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
 
     @Test
     fun `adb detection works or reports not available`() {

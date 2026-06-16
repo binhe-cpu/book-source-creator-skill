@@ -42,9 +42,10 @@ if (Test-Path $jar) {
     exit 1
 }
 
-# 复制 run.bat、stop.bat 和 README.txt
+# 复制 run.bat、stop.bat、setup 脚本和 README.txt
 Copy-Item "$root\run.bat" $validatorStaging
 Copy-Item "$root\stop.bat" $validatorStaging
+Copy-Item "$root\setup-adb.bat" $validatorStaging
 Copy-Item "$root\README.txt" $validatorStaging
 
 # 复制 Android Probe APK
