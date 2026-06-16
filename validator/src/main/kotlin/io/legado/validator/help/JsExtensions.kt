@@ -147,6 +147,9 @@ interface JsExtensions {
     fun ajax(urlStr: String, headers: Map<String, String>): String? {
         return try { HttpHelper.get(urlStr, headers).body } catch (e: Exception) { null }
     }
+    fun ajaxAll(urls: Array<String>): Array<String?> {
+        return urls.map { ajax(it) }.toTypedArray()
+    }
     fun get(urlStr: String, headers: Map<String, String>): StrResponse = HttpHelper.get(urlStr, headers)
     fun head(urlStr: String, headers: Map<String, String>): String {
         return try {
@@ -175,12 +178,30 @@ interface JsExtensions {
         return try { java.io.File(path).readText() } catch (_: Exception) { null }
     }
 
-    fun downloadFile(url: String): String? {
+    fun readTxtFile(path: String): String? {
+        return try { java.io.File(path).readText() } catch (_: Exception) { null }
+    }
+
+    fun downloadFile(url: String): String? = downloadFile(url, null)
+
+    fun downloadFile(url: String, path: String?): String? {
         return try {
             val fileName = url.substringAfterLast("/").substringBefore("?").ifEmpty { "download.tmp" }
-            val file = java.io.File.createTempFile("legado_dl_", "_$fileName")
+            val file = if (path != null) {
+                java.io.File(path).apply { parentFile?.mkdirs() }
+            } else {
+                java.io.File.createTempFile("legado_dl_", "_$fileName")
+            }
             file.writeBytes(HttpHelper.get(url).body.toByteArray())
             file.absolutePath
+        } catch (_: Exception) { null }
+    }
+
+    fun importScript(path: String): Any? {
+        return try {
+            val jsCode = java.io.File(path).readText()
+            val bindings = mapOf("java" to this)
+            io.legado.validator.analyzeRule.RhinoAdapter.eval(jsCode, bindings)
         } catch (_: Exception) { null }
     }
 
