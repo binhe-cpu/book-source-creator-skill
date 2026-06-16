@@ -4,7 +4,7 @@ data class DebugStep(
     val phase: String,
     val status: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val mode: String = "http",              // "http" | "browser"
+    val mode: String = "http",              // "http" | "browser" | "android"
     val request: RequestInfo? = null,
     val response: ResponseInfo? = null,
     val ruleHits: List<RuleHit> = emptyList(),
@@ -18,7 +18,13 @@ data class DebugStep(
     val renderError: String? = null,
     val needsAppReview: Boolean = false,
     val reviewReason: String? = null,
-    val compatibilityWarnings: List<CompatibilityWarning>? = null
+    val compatibilityWarnings: List<CompatibilityWarning>? = null,
+    // Probe 字段 (P9)
+    val probeAvailable: Boolean? = null,
+    val probeDevice: String? = null,
+    val androidWebViewVersion: String? = null,
+    val webViewHtmlPreview: String? = null,
+    val webViewScreenshotBase64: String? = null
 ) {
     data class RequestInfo(val url: String, val method: String, val headers: Map<String, String>, val body: String?)
     data class ResponseInfo(val code: Int, val contentType: String?, val bodyPreview: String, val bodyLength: Int)
@@ -26,15 +32,21 @@ data class DebugStep(
     data class CompatibilityWarning(val feature: String, val description: String)
 
     fun compact(): DebugStep {
-        if (phase != "toc" || !extracted.containsKey("chapters")) return this
-        val chapters = extracted["chapters"] as? List<*> ?: return this
-        val chapterCount = extracted["chapterCount"] as? Int ?: chapters.size
-        return copy(extracted = extracted.toMutableMap().apply {
-            remove("chapters")
-            put("chapterCount", chapterCount)
-            put("first5", chapters.take(5))
-            put("last5", chapters.takeLast(5))
-        })
+        var result = this
+        if (phase == "toc" && extracted.containsKey("chapters")) {
+            val chapters = extracted["chapters"] as? List<*> ?: return result
+            val chapterCount = extracted["chapterCount"] as? Int ?: chapters.size
+            result = result.copy(extracted = extracted.toMutableMap().apply {
+                remove("chapters")
+                put("chapterCount", chapterCount)
+                put("first5", chapters.take(5))
+                put("last5", chapters.takeLast(5))
+            })
+        }
+        if (webViewScreenshotBase64 != null) {
+            result = result.copy(webViewScreenshotBase64 = "[${webViewScreenshotBase64.length} chars]")
+        }
+        return result
     }
 }
 
