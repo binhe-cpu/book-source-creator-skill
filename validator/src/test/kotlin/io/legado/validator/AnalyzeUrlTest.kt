@@ -86,6 +86,30 @@ class AnalyzeUrlTest {
     }
 
     @Test
+    fun `key is URL encoded in GET URL`() {
+        val source = BookSource(bookSourceUrl = "https://example.com")
+        val au = AnalyzeUrl(
+            mUrl = "/search?keyword={{key}}&page={{page}}",
+            key = "凡人修仙传", page = 1,
+            source = source
+        )
+        assertTrue(au.url.contains("keyword=%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E4%BC%A0"))
+        assertTrue(au.url.contains("page=1"))
+    }
+
+    @Test
+    fun `key is NOT encoded in POST body`() {
+        val source = BookSource(bookSourceUrl = "https://example.com")
+        val au = AnalyzeUrl(
+            mUrl = """/search,{"method":"POST","body":"key={{key}}"}""",
+            key = "凡人修仙传",
+            source = source
+        )
+        assertTrue(au.isPost())
+        assertEquals("key=凡人修仙传", au.body)
+    }
+
+    @Test
     fun `malformed JSON is treated as part of URL`() {
         val source = BookSource(bookSourceUrl = "https://example.com")
         val au = AnalyzeUrl(

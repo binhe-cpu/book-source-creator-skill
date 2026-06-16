@@ -85,9 +85,9 @@ class AnalyzeUrl(
             }
         }
 
-        // 替换 key
+        // 替换 key（URL 中编码，POST body 保持原始值）
         key?.let {
-            mUrl = mUrl.replace("{{key}}", it)
+            mUrl = mUrl.replace("{{key}}", URLEncoder.encode(it, "UTF-8"))
             body = body?.replace("{{key}}", it)
         }
         // 替换 page
