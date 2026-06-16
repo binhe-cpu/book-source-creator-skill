@@ -87,6 +87,7 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 ## 输出结构
 
 输出目录必须是用户任务工作目录，不写入 skill 安装目录。
+`outputs/<site-slug>/book-source.json` 是唯一默认用户交付物；过程记录只写入 `runs/<site-slug>/`。
 
 ```
 <用户工作目录>/

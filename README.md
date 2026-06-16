@@ -80,14 +80,17 @@
 │  └─ validator/                  # 内置 validator（运行包）
 │     ├─ run.bat                  # 启动服务
 │     ├─ stop.bat                 # 停止服务
+│     ├─ setup-android-probe.bat   # 安装并启动 Android Probe
+│     ├─ android-probe.apk         # Android WebView Probe（Release 包内）
 │     ├─ README.txt               # validator 使用说明
 │     ├─ app/
 │     │  └─ legado-source-validator.jar
 │     └─ examples/               # 测试样例（sources/cases/candidates）
-└─ validator/                     # validator 源码（开发用）
+├─ validator/                     # validator 源码（开发用）
    ├─ src/
    ├─ build.gradle.kts
    └─ examples/
+└─ android-probe/                 # Android WebView Probe 源码（开发用）
 ```
 
 ## 输出结构
@@ -132,6 +135,35 @@ runs/<site-slug>/
 
 ## 安装
 
+### 方式 0：下载 Release 包（推荐给普通用户）
+
+1. 到 GitHub Releases 下载 `legado-book-source-generator-<version>.zip`
+2. 解压后进入 `legado-book-source-generator\validator\`
+3. 双击 `run.bat`
+4. 浏览器打开 `http://localhost:1111`
+5. 导入书源 JSON，输入关键词，选择验证模式后运行
+
+`run.bat` 会打开可见窗口，窗口里按 `Ctrl+C` 可以停止；也可以双击 `stop.bat` 按端口停止服务。
+
+Release 包里已经包含：
+
+```text
+legado-book-source-generator\
+  SKILL.md
+  references\
+  scripts\
+  tests\
+  validator\
+    run.bat
+    stop.bat
+    setup-android-probe.bat
+    android-probe.apk
+    app\legado-source-validator.jar
+    examples\
+```
+
+普通使用者不需要本地编译 Gradle 项目；只有开发 validator 或 Android Probe 时才需要 clone 仓库并构建。
+
 ### 方式 1：作为 Claude Code Skill
 
 把 [`legado-book-source-generator`](./legado-book-source-generator) 目录复制到你的 Claude Code skills 目录：
@@ -169,7 +201,91 @@ runs/<site-slug>/
 
 - Claude Code / Codex
 - Git
+- Android Studio 或 Android SDK Platform Tools（需要 Android WebView Probe 时）
 - 可导入书源并验证的阅读 App（最终 App 复核用）
+
+### validator 环境配置
+
+只跑 HTTP / Browser / Auto 的普通验证时，必须有：
+
+- Java 17+
+- 可访问目标网站的网络环境
+
+启动方式：
+
+```powershell
+cd .\legado-book-source-generator\validator
+.\run.bat
+```
+
+浏览器打开：
+
+```text
+http://localhost:1111
+```
+
+停止方式：
+
+```powershell
+# run.bat 窗口里按 Ctrl+C
+# 或者
+.\stop.bat
+```
+
+### Android WebView Probe（可选）
+
+Android Probe 用于复核带 `webView:true` / `webJs` 的书源链路。它运行在真实 Android WebView 上，比桌面 Browser 模式更接近阅读 App，但仍不等于阅读 App 100% 通过。
+
+需要：
+
+- 一台打开 USB 调试的 Android 真机，或一个已启动的 Android 模拟器
+- `adb`
+- Release 包内置的 `validator\android-probe.apk`
+
+Windows 上常见 ADB 路径：
+
+```text
+%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
+```
+
+validator 会按顺序自动查找：
+
+1. `ANDROID_HOME\platform-tools\adb.exe`
+2. `ANDROID_SDK_ROOT\platform-tools\adb.exe`
+3. `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`
+4. `PATH` 里的 `adb`
+
+如果需要手动配置：
+
+```powershell
+setx ANDROID_HOME "$env:LOCALAPPDATA\Android\Sdk"
+setx ANDROID_SDK_ROOT "$env:LOCALAPPDATA\Android\Sdk"
+setx PATH "$env:PATH;$env:LOCALAPPDATA\Android\Sdk\platform-tools"
+```
+
+安装并启动 Probe：
+
+```powershell
+cd .\legado-book-source-generator\validator
+.\setup-android-probe.bat
+```
+
+脚本会执行：
+
+- 检查 `adb`
+- 查找连接设备
+- 安装 `android-probe.apk`
+- 启动 `io.legado.probe/.WebViewProbeActivity`
+- 建立 `localhost:18888 -> device:18888` 端口转发
+
+没有连接设备时，validator 会返回：
+
+```text
+validator_limitation
+Android Probe 不可用: No Android devices connected
+```
+
+这不是书源失败，而是当前电脑没有可用 Android WebView 复核环境。
 
 ## 辅助脚本
 
@@ -232,9 +348,10 @@ npm test
 
 ## 限制与风险
 
-### 当前已知限制（v0.2.0）
+### 当前已知限制
 
-- validator 已补强部分源码行为兼容和状态门禁，但尚未真实执行 Android WebView / webJs；桌面浏览器通过不等于阅读 App 通过。
+- validator 已支持通过 Android Probe 调用真实 Android WebView 复核部分 `webView:true` / `webJs` 场景，但需要已连接的 Android 设备或模拟器。
+- Android Probe 通过只代表该设备 WebView 环境下通过，不等于阅读 App 100% 通过。
 - 登录态 / CookieJar 尚未支持导入、记录、隔离和复用；validator 会识别并标记限制，但不能替代登录后的 App 复核。
 - Cloudflare、验证码、付费墙、会员权限、DRM、强风控等访问控制不会也不应被绕过，只能标记 `needs_app_review`。
 - `validator passed` 只代表当前 search/detail/toc/content 技术链路跑通，不代表书源质量、长期可用性、合法可用性或阅读体验完整。
@@ -257,7 +374,7 @@ npm test
 默认不做：
 
 - 发现页
-- adb 自动化回归
+- 登录态 / CookieJar 管理
 - 验证码自动化
 - 付费绕过
 

@@ -14,9 +14,65 @@ Legado 书源生成与验证工具
 1. 解压本 zip
 2. 双击 validator\run.bat，等待窗口显示服务地址
 3. 浏览器打开 http://localhost:1111
-4. 让 Claude/Codex 使用本目录作为 skill 目录
-5. 给出小说站点 URL，AI 会自动生成书源并验证
-6. 生成的书源在 outputs\<站点>\book-source.json
+4. 在网页里导入 book-source.json，输入关键词，选择 HTTP / Browser / Android / Auto 模式后运行
+5. 如果要让 AI 生成书源，让 Claude/Codex 使用本目录作为 skill 目录
+6. 给出小说站点 URL，AI 会自动生成书源并调用 validator 验证
+7. 生成的书源在 outputs\<站点>\book-source.json
+
+## 运行环境
+
+必需：
+
+- Java 17+
+- 能访问目标网站的网络环境
+
+可选：
+
+- Node.js 18+：运行 scripts\ 里的辅助脚本时需要
+- adb / Android Studio / Android SDK Platform Tools：使用 Android WebView Probe 时需要
+
+Windows 常见 adb 路径：
+
+%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
+
+validator 会自动查找 ANDROID_HOME、ANDROID_SDK_ROOT、上述默认路径和 PATH 里的 adb。
+
+如果需要手动配置：
+
+setx ANDROID_HOME "%LOCALAPPDATA%\Android\Sdk"
+setx ANDROID_SDK_ROOT "%LOCALAPPDATA%\Android\Sdk"
+setx PATH "%PATH%;%LOCALAPPDATA%\Android\Sdk\platform-tools"
+
+设置用户环境变量后，新开的终端/程序才会继承。
+
+## Android WebView Probe
+
+Android Probe 用于复核带 webView:true / webJs 的书源链路。
+
+使用前准备：
+
+1. 插入 Android 真机并打开 USB 调试，或启动 Android 模拟器
+2. 确认 adb devices 能看到设备
+3. 双击 validator\setup-android-probe.bat
+
+setup 脚本会：
+
+- 安装 validator\android-probe.apk
+- 启动 io.legado.probe/.WebViewProbeActivity
+- 建立 localhost:18888 -> device:18888 端口转发
+
+没有设备时，validator 会显示：
+
+validator_limitation
+Android Probe 不可用: No Android devices connected
+
+这表示当前电脑没有 Android WebView 复核环境，不代表书源本身一定失败。
+
+注意：
+
+- Android Probe 是真实 Android WebView 复核，但不等于阅读 App 100% 通过。
+- Browser 模式是桌面浏览器渲染，不等于 Android WebView。
+- 本工具不会绕过验证码、登录、Cloudflare、付费墙、DRM 或其他访问控制。
 
 ## 停止服务
 
@@ -31,9 +87,10 @@ Legado 书源生成与验证工具
 - needs_app_review：验证码、登录、Cloudflare、WebView、付费等需人工或 App 复核
 - failed：AI 回修后仍未通过，需人工检查
 
-## 当前已知限制（v0.2.0）
+## 当前已知限制
 
-- validator 已补强部分源码行为兼容和状态门禁，但尚未真实执行 Android WebView / webJs。
+- validator 已支持通过 Android Probe 调用真实 Android WebView 复核部分 webView:true / webJs 场景，但需要已连接的 Android 设备或模拟器。
+- Android Probe 通过只代表该设备 WebView 环境下通过，不等于阅读 App 100% 通过。
 - 登录态 / CookieJar 尚未支持导入、记录、隔离和复用；validator 会识别并标记限制，但不能替代登录后的 App 复核。
 - Cloudflare、验证码、付费墙、会员权限、DRM、强风控等访问控制只能标记需复核，不会也不应被绕过。
 - validator passed 只代表当前技术链路跑通，不代表质量通过、长期可用、合法可用或阅读体验完整。
@@ -50,6 +107,8 @@ legado-book-source-generator\
   validator\                  # 内置 validator
     run.bat                   # 启动服务
     stop.bat                  # 停止服务
+    setup-android-probe.bat   # 安装并启动 Android Probe
+    android-probe.apk         # Android WebView Probe
     app\                      # JAR 文件
     examples\                 # 测试样例（sources/cases/candidates）
 ```
