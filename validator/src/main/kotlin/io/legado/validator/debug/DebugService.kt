@@ -6,6 +6,8 @@ import io.legado.validator.analyzeRule.RuleData
 import io.legado.validator.help.WebViewNotSupportedException
 import io.legado.validator.help.http.StrResponse
 import io.legado.validator.model.*
+import io.legado.validator.probe.AndroidProbeService
+import io.legado.validator.probe.ProbeRenderRequest
 import io.legado.validator.render.RenderService
 import io.legado.validator.webBook.BookChapterList
 import io.legado.validator.webBook.BookContent
@@ -77,14 +79,25 @@ class DebugService {
         val warnings = collectWarnings(source)
 
         // Step 1: Search
-        val searchStep = (if (mode == "browser") {
-            runSearchBrowser(source, keyword)
-        } else {
-            val httpStep = runSearch(source, keyword)
-            if (mode == "auto" && httpStep.status == "error") {
-                val browserStep = runSearchBrowser(source, keyword)
-                if (browserStep.status == "success") browserStep else httpStep
-            } else httpStep
+        val searchStep = (when (mode) {
+            "android" -> runSearchAndroid(source, keyword)
+            "browser" -> runSearchBrowser(source, keyword)
+            else -> { // "http" or "auto"
+                val httpStep = runSearch(source, keyword)
+                if (mode == "auto") {
+                    when {
+                        httpStep.status == "success" -> httpStep
+                        httpStep.needsAppReview -> {
+                            val androidStep = runSearchAndroid(source, keyword)
+                            if (androidStep.status == "success") androidStep else httpStep
+                        }
+                        else -> {
+                            val browserStep = runSearchBrowser(source, keyword)
+                            if (browserStep.status == "success") browserStep else httpStep
+                        }
+                    }
+                } else httpStep
+            }
         }).withWarnings(warnings)
         steps.add(searchStep)
         listener?.invoke(searchStep)
@@ -115,7 +128,11 @@ class DebugService {
 
         // Step 4: Content (first 2 chapters)
         for (ch in chapters.take(2)) {
-            val contentStep = runContent(source, book, ch, actualMode).withWarnings(warnings)
+            val contentStep = if (actualMode == "android") {
+                runContentAndroid(source, book, ch)
+            } else {
+                runContent(source, book, ch, actualMode)
+            }.withWarnings(warnings)
             steps.add(contentStep)
             listener?.invoke(contentStep)
         }
@@ -457,6 +474,104 @@ class DebugService {
                     request = buildRequestInfo(),
                     response = buildResponseInfo(WebBook.lastResponse),
                     error = "${e::class.simpleName}: ${e.message}"
+                )
+            }
+        }
+    }
+
+    private suspend fun runSearchAndroid(source: BookSource, keyword: String): DebugStep {
+        return withContext(Dispatchers.IO) {
+            val probeInfo = AndroidProbeService.probeCheck()
+            if (!probeInfo.available) {
+                return@withContext DebugStep(
+                    phase = "search", status = "error", mode = "android",
+                    error = "Android Probe 不可用: ${probeInfo.error}",
+                    probeAvailable = false
+                )
+            }
+            try {
+                WebBook.clearState()
+                val books = WebBook.searchBookAwait(source, keyword)
+                val res = WebBook.lastResponse
+                val first = books.firstOrNull()
+                val reqInfo = buildRequestInfo()
+                val resInfo = buildResponseInfo(res)
+                if (first != null) {
+                    DebugStep(
+                        phase = "search", status = "success", mode = "android",
+                        request = reqInfo, response = resInfo,
+                        ruleHits = toRuleHits(WebBook.lastRuleHits),
+                        extracted = mapOf("resultCount" to books.size, "firstBook" to first, "books" to books.take(10)),
+                        probeAvailable = true,
+                        probeDevice = probeInfo.device?.serial
+                    )
+                } else {
+                    DebugStep(
+                        phase = "search", status = "error", mode = "android",
+                        request = reqInfo, response = resInfo,
+                        error = "搜索结果为空",
+                        probeAvailable = true,
+                        probeDevice = probeInfo.device?.serial
+                    )
+                }
+            } catch (e: Exception) {
+                DebugStep(
+                    phase = "search", status = "error", mode = "android",
+                    error = "${e::class.simpleName}: ${e.message}",
+                    probeAvailable = true,
+                    probeDevice = probeInfo.device?.serial
+                )
+            }
+        }
+    }
+
+    private suspend fun runContentAndroid(source: BookSource, book: Book, chapter: BookChapter): DebugStep {
+        return withContext(Dispatchers.IO) {
+            val probeInfo = AndroidProbeService.probeCheck()
+            if (!probeInfo.available) {
+                return@withContext DebugStep(
+                    phase = "content", status = "error", mode = "android",
+                    error = "Android Probe 不可用: ${probeInfo.error}",
+                    probeAvailable = false
+                )
+            }
+            try {
+                val contentRule = source.getContentRule()
+                val webJs = contentRule.webJs
+                val probeReq = ProbeRenderRequest(
+                    url = chapter.url,
+                    headers = source.getHeaderMap(),
+                    javaScript = webJs,
+                    screenshot = true
+                )
+                val probeRes = AndroidProbeService.render(probeReq)
+                if (!probeRes.ok) {
+                    return@withContext DebugStep(
+                        phase = "content", status = "error", mode = "android",
+                        error = probeRes.error ?: "Probe render failed",
+                        probeAvailable = true,
+                        probeDevice = probeInfo.device?.serial,
+                        webViewHtmlPreview = probeRes.html?.take(2000),
+                        webViewScreenshotBase64 = probeRes.screenshotBase64
+                    )
+                }
+                val analyzeRule = AnalyzeRule(book, source)
+                analyzeRule.setContent(probeRes.html ?: "", chapter.url)
+                val content = analyzeRule.setFieldName("content").getString(contentRule.content)
+                DebugStep(
+                    phase = "content", status = "success", mode = "android",
+                    extracted = mapOf("chapterTitle" to chapter.title, "contentLength" to content.length),
+                    preview = content.take(500),
+                    probeAvailable = true,
+                    probeDevice = probeInfo.device?.serial,
+                    webViewHtmlPreview = probeRes.html?.take(2000),
+                    webViewScreenshotBase64 = probeRes.screenshotBase64
+                )
+            } catch (e: Exception) {
+                DebugStep(
+                    phase = "content", status = "error", mode = "android",
+                    error = "${e::class.simpleName}: ${e.message}",
+                    probeAvailable = true
                 )
             }
         }
