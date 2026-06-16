@@ -31,10 +31,10 @@ Legado 书源生成与验证工具
 - needs_app_review：验证码、登录、Cloudflare、WebView、付费等需人工或 App 复核
 - failed：AI 回修后仍未通过，需人工检查
 
-## v0.1.0 已知限制
+## 当前已知限制（v0.2.0）
 
-- validator 后端尚未支持 Android WebView / webJs，只能用 HTTP 或桌面浏览器渲染近似验证。
-- 登录态 / CookieJar 尚未支持导入、记录、隔离和复用。
+- validator 已补强部分源码行为兼容和状态门禁，但尚未真实执行 Android WebView / webJs。
+- 登录态 / CookieJar 尚未支持导入、记录、隔离和复用；validator 会识别并标记限制，但不能替代登录后的 App 复核。
 - Cloudflare、验证码、付费墙、会员权限、DRM、强风控等访问控制只能标记需复核，不会也不应被绕过。
 - validator passed 只代表当前技术链路跑通，不代表质量通过、长期可用、合法可用或阅读体验完整。
 - 多章节 URL 为空、不可区分、全部指向同一全文页、伪章节等情况应标记 degraded。

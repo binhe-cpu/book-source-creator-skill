@@ -1,5 +1,5 @@
 # Release 打包脚本
-# 生成 legado-book-source-generator-v0.1.0.zip
+# 生成 legado-book-source-generator-<Version>.zip
 # 用法: powershell -ExecutionPolicy Bypass -File package-release.ps1
 
 param(
