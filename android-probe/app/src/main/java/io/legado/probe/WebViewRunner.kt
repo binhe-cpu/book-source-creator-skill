@@ -3,6 +3,7 @@ package io.legado.probe
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
@@ -76,7 +77,7 @@ class WebViewRunner(private val context: Context) {
 
     private fun executeJsAndFinish(
         webView: WebView, url: String?, cookies: String?,
-        request: RenderRequest, cont: CancellableCoroutine<RenderResponse>,
+        request: RenderRequest, cont: CancellableContinuation<RenderResponse>,
         elapsed: Long
     ) {
         val js = request.javaScript ?: "document.documentElement.outerHTML"
