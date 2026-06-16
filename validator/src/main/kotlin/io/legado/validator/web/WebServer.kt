@@ -7,6 +7,7 @@ import io.legado.validator.debug.DebugService
 import io.legado.validator.debug.DebugStep
 import io.legado.validator.debug.compact
 import io.legado.validator.model.BookSource
+import io.legado.validator.probe.AndroidProbeService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ class WebServer(port: Int) : NanoWSD(port) {
             uri == "/api/debug/steps" && session.method == Method.GET -> handleGetSteps()
             uri == "/api/debug/run" && session.method == Method.POST -> handleRunDebug(session)
             uri == "/api/debug/smoke" && session.method == Method.POST -> handleSmoke(session)
+            uri == "/api/probe/status" && session.method == Method.GET -> handleProbeStatus()
             uri.startsWith("/api/source/") && session.method == Method.DELETE -> {
                 val encoded = uri.removePrefix("/api/source/")
                 val sourceUrl = String(Base64.getUrlDecoder().decode(encoded))
@@ -360,5 +362,10 @@ class WebServer(port: Int) : NanoWSD(port) {
             offset += read
         }
         return if (offset == contentLength) buffer else buffer.copyOf(offset)
+    }
+
+    private fun handleProbeStatus(): Response {
+        val info = AndroidProbeService.probeCheck()
+        return newFixedLengthResponse(Response.Status.OK, "application/json", Gson().toJson(info))
     }
 }
