@@ -59,6 +59,13 @@ class AnalyzeUrl(
             if (result != null) { jsUrlExecuted = true; result } else { match.value }
         }
 
+        // Expand page rule <1,2,3> → use first value (WebBook handles multi-page)
+        val pageRulePattern = Regex("<([^>]+)>")
+        mUrl = pageRulePattern.replace(mUrl) { match ->
+            val values = match.groupValues[1].split(",")
+            values.firstOrNull()?.trim() ?: match.value
+        }
+
         // 解析 URL JSON 选项: url,{"method":"POST","body":"...","headers":{...},"charset":"..."}
         val commaIdx = findJsonOptionStart(mUrl)
         if (commaIdx > 0) {

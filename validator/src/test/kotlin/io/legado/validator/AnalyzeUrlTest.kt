@@ -76,6 +76,16 @@ class AnalyzeUrlTest {
     }
 
     @Test
+    fun `page rule 1 2 3 extracts first page`() {
+        val source = BookSource(bookSourceUrl = "https://example.com")
+        val au = AnalyzeUrl(
+            mUrl = "/list-<1,2,3>.html",
+            source = source
+        )
+        assertEquals("https://example.com/list-1.html", au.url)
+    }
+
+    @Test
     fun `malformed JSON is treated as part of URL`() {
         val source = BookSource(bookSourceUrl = "https://example.com")
         val au = AnalyzeUrl(
