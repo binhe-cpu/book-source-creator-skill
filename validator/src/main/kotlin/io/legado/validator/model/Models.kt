@@ -62,8 +62,9 @@ data class BookSource(
     fun getContentRule(): ContentRule = ruleContent ?: ContentRule()
 
     fun getHeaderMap(): Map<String, String> {
-        if (header.isNullOrBlank()) return emptyMap()
-        val headerStr = header!!.trim()
+        val raw = header
+        if (raw.isNullOrBlank()) return emptyMap()
+        var headerStr = raw.trim()
         val resolved = try {
             if (headerStr.startsWith("@js:")) {
                 RhinoAdapter.eval(headerStr.substring(4), mapOf("source" to this, "java" to JsHelper))
