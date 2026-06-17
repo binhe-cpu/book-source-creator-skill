@@ -77,7 +77,8 @@ class DebugService {
         steps.clear()
         val book = Book()
         val warnings = collectWarnings(source)
-        val sessionMode = if (io.legado.validator.web.CookieStore.hasCookies()) "authenticated" else "anonymous"
+        val sourceDomain = try { java.net.URL(source.bookSourceUrl).host.lowercase() } catch (_: Exception) { "" }
+        val sessionMode = if (sourceDomain.isNotEmpty() && io.legado.validator.web.CookieStore.getCookie(sourceDomain) != null) "authenticated" else "anonymous"
 
         // Step 1: Search
         val searchStep = (when (mode) {
@@ -684,8 +685,8 @@ fun determineFinalStatus(steps: List<DebugStep>, source: BookSource? = null): St
     return when {
         hasNeedsAppReview -> "needs_app_review"
         hasProbeUnavailable -> "validator_limitation"
-        hasUnsupportedFeature && allPassed -> "validator_limitation"
         allPassed && isAnonymous && hasLoginVertex -> "anonymous_candidate"
+        hasUnsupportedFeature && allPassed -> "validator_limitation"
         allPassed -> "passed"
         else -> "failed"
     }

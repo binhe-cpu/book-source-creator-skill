@@ -1,0 +1,25 @@
+{
+  "bookSourceUrl": "https://www.novalpie.cc",
+  "bookSourceName": "novalpie (占位)",
+  "searchUrl": "/search?keyword={{key}}",
+  "ruleSearch": {
+    "bookList": ".book-item",
+    "name": ".book-title",
+    "author": ".book-author",
+    "bookUrl": "a@href"
+  },
+  "ruleBookInfo": {
+    "name": "h1",
+    "author": ".author",
+    "intro": ".intro",
+    "tocUrl": ""
+  },
+  "ruleToc": {
+    "chapterList": ".chapter-item a",
+    "chapterName": "text",
+    "chapterUrl": "href"
+  },
+  "ruleContent": {
+    "content": ".content"
+  }
+}
