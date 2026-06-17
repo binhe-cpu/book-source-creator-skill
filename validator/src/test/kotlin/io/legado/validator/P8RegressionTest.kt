@@ -3,6 +3,8 @@ package io.legado.validator
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.legado.validator.analyzeRule.AnalyzeUrl
+import io.legado.validator.debug.DebugStep
+import io.legado.validator.debug.determineFinalStatus
 import io.legado.validator.model.BookSource
 import io.legado.validator.webBook.WebBook
 import kotlinx.coroutines.runBlocking
@@ -114,6 +116,30 @@ class P8RegressionTest {
         assertNotNull(source.searchUrl, "zhide should have searchUrl")
         // zhide uses crypto features — verify source loads correctly
         assertTrue(source.bookSourceUrl.isNotBlank(), "zhide should have bookSourceUrl")
+    }
+
+    @Test
+    fun `novalpie source is login webview baseline`() {
+        val source = loadSource("novalpie-com.json")
+        assertEquals("https://novalpie.cc", source.bookSourceUrl)
+        assertTrue(source.enabledCookieJar == true, "novalpie should require CookieJar")
+        assertEquals("https://novalpie.cc/login", source.loginUrl)
+        assertTrue(source.header?.contains("Authorization") == true, "novalpie should derive Authorization header")
+        assertTrue(source.getContentRule().webJs?.contains("reader-content") == true, "novalpie should use webJs reader content extraction")
+        assertTrue(source.getTocRule().chapterUrl?.contains("/reader?novel=") == true, "novalpie should use reader route")
+        assertTrue(source.getTocRule().chapterUrl?.contains("\"webView\":true") == true, "novalpie chapters should require WebView")
+    }
+
+    @Test
+    fun `anonymous login vertex pass becomes anonymous candidate`() {
+        val source = loadSource("novalpie-com.json")
+        val steps = listOf(
+            DebugStep("search", "success", sessionMode = "anonymous"),
+            DebugStep("detail", "success", sessionMode = "anonymous"),
+            DebugStep("toc", "success", sessionMode = "anonymous"),
+            DebugStep("content", "success", sessionMode = "anonymous")
+        )
+        assertEquals("anonymous_candidate", determineFinalStatus(steps, source))
     }
 
     @Test
