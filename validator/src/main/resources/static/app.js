@@ -96,7 +96,15 @@ document.getElementById('btn-debug').onclick = async () => {
     });
     finishDebug();
     if (data.finalStatus && data.finalStatus !== 'passed') {
-      flash(`状态: ${data.finalStatus}`, data.finalStatus === 'validator_limitation' ? 'warn' : 'error');
+      const msg = {
+        'anonymous_candidate': '⚠ 匿名验证通过，但站点存在登录态依赖，不能标可用',
+        'validator_limitation': '状态: validator_limitation',
+        'needs_app_review': '状态: needs_app_review',
+        'failed': '状态: failed'
+      }[data.finalStatus] || `状态: ${data.finalStatus}`;
+      const level = data.finalStatus === 'anonymous_candidate' ? 'warn' : 
+                    data.finalStatus === 'validator_limitation' ? 'warn' : 'error';
+      flash(msg, level);
     }
     return;
   } catch (e) {
