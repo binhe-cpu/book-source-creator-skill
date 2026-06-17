@@ -62,8 +62,8 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 
 ## 核心规则
 
-1. 先匿名初探 search/detail/toc/content 四条链路。
-2. **支持登录 ≠ 必须暂停。** 先匿名分析；只有某条必要链路实测需要登录、验证码、付费或用户明确要求登录态内容时，才请求用户协助登录。
+1. 先匿名初探：只判断站点结构、接口路径、是否有反爬、是否需要 WebView。
+2. **匿名分析可以继续，最终验收不能只靠匿名。** 只要站点有 `loginUrl` / `enabledCookieJar` / `Authorization` header / `webJs` / `webView` 任一项，最终验证优先登录态。匿名生成结果只能标 `anonymous_candidate` 或高风险，不能标 full pass。用户拒绝登录时可以继续生成，但最终状态必须是 `degraded` / `high-risk`，需要 App 复核。
 3. 先完成网站可生成性评估，再进入规则生成。
 4. 如果 Browser MCP 与模型推断冲突，以实测为准。
 5. 优先服从 `references/legado-official-rule-notes.md` 中的官方规则。
