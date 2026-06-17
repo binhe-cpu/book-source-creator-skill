@@ -37,13 +37,63 @@ object HttpHelper {
             .hostnameVerifier { _, _ -> true }
             .followRedirects(true)
             .followSslRedirects(true)
+            // Match Legado HttpHelper default headers interceptor
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val builder = request.newBuilder()
+                if (request.header("User-Agent") == null) {
+                    builder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                }
+                builder.addHeader("Keep-Alive", "300")
+                builder.addHeader("Connection", "Keep-Alive")
+                builder.addHeader("Cache-Control", "no-cache")
+                chain.proceed(builder.build())
+            }
+            // Match Legado CookieJar network interceptor (Gap #1)
+            .addNetworkInterceptor { chain ->
+                var request = chain.request()
+                val enableCookieJar = request.header("CookieJar") != null
+
+                if (enableCookieJar) {
+                    val requestBuilder = request.newBuilder()
+                    requestBuilder.removeHeader("CookieJar")
+                    val domain = try { java.net.URL(request.url.toString()).host.lowercase() } catch (_: Exception) { "" }
+                    val storedCookie = io.legado.validator.web.CookieStore.getCookie(domain)
+                    if (!storedCookie.isNullOrEmpty()) {
+                        val existingCookie = request.header("Cookie")
+                        val merged = if (!existingCookie.isNullOrEmpty()) {
+                            "$existingCookie; $storedCookie"
+                        } else {
+                            storedCookie
+                        }
+                        requestBuilder.header("Cookie", merged)
+                    }
+                    request = requestBuilder.build()
+                }
+
+                val response = chain.proceed(request)
+
+                if (enableCookieJar) {
+                    val setCookies = response.headers("Set-Cookie")
+                    if (setCookies.isNotEmpty()) {
+                        val domain = try { java.net.URL(request.url.toString()).host.lowercase() } catch (_: Exception) { "" }
+                        if (domain.isNotEmpty()) {
+                            val cookieValues = setCookies.map { it.split(";").first().trim() }
+                            val newCookie = cookieValues.joinToString("; ")
+                            val existing = io.legado.validator.web.CookieStore.getCookie(domain)
+                            val merged = if (!existing.isNullOrEmpty()) "$existing; $newCookie" else newCookie
+                            io.legado.validator.web.CookieStore.setCookie(domain, merged)
+                        }
+                    }
+                }
+                response
+            }
             .build()
     }
 
     fun get(url: String, headers: Map<String, String> = emptyMap(), charset: String? = null): StrResponse {
         val builder = Request.Builder().url(url).get()
         headers.forEach { (k, v) -> builder.addHeader(k, v) }
-        builder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         val response = client.newCall(builder.build()).execute()
         val body = response.body?.let {
             val bytes = it.bytes()
@@ -58,7 +108,6 @@ object HttpHelper {
         val builder = Request.Builder().url(url)
             .post(body.toByteArray().toRequestBody(contentType.toMediaType()))
         headers.forEach { (k, v) -> builder.addHeader(k, v) }
-        builder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         val response = client.newCall(builder.build()).execute()
         val respBody = response.body?.let {
             val bytes = it.bytes()
