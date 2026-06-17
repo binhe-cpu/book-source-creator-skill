@@ -86,6 +86,7 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 19. **禁止空字符串可选字段** — `book-source.json` 中可选字段要么填有效值，要么删除，不得保留空字符串 `""`。
 20. **validator passed ≠ 质量 pass** — validator 只验证技术链路，不验证书源质量。若目录章节 URL 为空、所有章节指向同一全文页、章节无法独立定位、或 TOC 是伪章节，不能标 full pass，只能标 degraded（可导入但阅读体验降级）。
 21. **ruleToc.chapterUrl 不得为空** — 多章节时必须能生成稳定且可区分的章节 URL。如果只能全书单页阅读，必须在 summary 中标 degraded，不能说全链路可用。
+22. **book-source.json 必须是 JSON 数组** — 即使只有一个书源，也必须用 `[{ ... }]` 包裹。Legado 导入要求顶层为数组，单个对象会导致 `Expected BEGIN_ARRAY but was BEGIN_OBJECT` 错误。
 
 ## 输出结构
 
