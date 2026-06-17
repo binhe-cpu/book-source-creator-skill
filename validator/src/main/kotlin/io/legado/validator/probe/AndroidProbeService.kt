@@ -12,6 +12,7 @@ data class ProbeDevice(
 data class ProbeRenderRequest(
     val url: String,
     val headers: Map<String, String> = emptyMap(),
+    val cookies: String? = null,
     val javaScript: String? = null,
     val timeout: Long = 60000L,
     val jsRetries: Int = 30,
@@ -118,7 +119,13 @@ object AndroidProbeService {
 
     fun render(request: ProbeRenderRequest): ProbeRenderResponse {
         return try {
-            val json = gson.toJson(request)
+            // Inject cookies from CookieStore if not provided in request
+            val effectiveRequest = if (request.cookies == null) {
+                val domain = try { java.net.URL(request.url).host.lowercase() } catch (_: Exception) { "" }
+                val storedCookie = if (domain.isNotEmpty()) io.legado.validator.web.CookieStore.getCookie(domain) else null
+                if (storedCookie != null) request.copy(cookies = storedCookie) else request
+            } else request
+            val json = gson.toJson(effectiveRequest)
             val res = HttpHelper.post(
                 "http://127.0.0.1:$LOCAL_PORT/render",
                 json,

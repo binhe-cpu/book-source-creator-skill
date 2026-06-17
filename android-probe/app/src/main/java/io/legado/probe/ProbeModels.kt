@@ -3,6 +3,7 @@ package io.legado.probe
 data class RenderRequest(
     val url: String,
     val headers: Map<String, String> = emptyMap(),
+    val cookies: String? = null,
     val javaScript: String? = null,
     val timeout: Long = 60000L,
     val jsRetries: Int = 30,

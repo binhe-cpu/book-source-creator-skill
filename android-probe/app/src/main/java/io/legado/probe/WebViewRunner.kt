@@ -67,6 +67,12 @@ class WebViewRunner(private val context: Context) {
                     }
 
                     cont.invokeOnCancellation { webView.destroy() }
+                    // Inject cookies if provided
+                    if (request.cookies != null) {
+                        val cookieManager = CookieManager.getInstance()
+                        cookieManager.setCookie(request.url, request.cookies)
+                        cookieManager.flush()
+                    }
                     webView.loadUrl(request.url, request.headers)
                 }
             }
