@@ -15,7 +15,7 @@ import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-private val JS_PATTERN = Pattern.compile("<js>[\\w\\W]*?</js>|`[\\w\\W]*?`")
+private val JS_PATTERN = Pattern.compile("<js>([\\w\\W]*?)</js>|`([\\w\\W]*?)`")
 private fun String.isJson(): Boolean {
     val t = trim()
     return (t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))
