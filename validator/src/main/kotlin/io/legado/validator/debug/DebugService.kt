@@ -617,6 +617,7 @@ class DebugService {
                 if (!probeRes.ok) {
                     return@withContext DebugStep(
                         phase = "content", status = "error", mode = "android",
+                        request = DebugStep.RequestInfo(url = chapter.url, method = "GET", headers = source.getHeaderMap(), body = null),
                         error = probeRes.error ?: "Probe render failed",
                         probeAvailable = true,
                         probeDevice = probeInfo.device?.serial,

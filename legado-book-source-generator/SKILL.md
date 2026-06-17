@@ -111,6 +111,49 @@ validator 失败且证据不足 → 用 Browser MCP 补实测
 
 如果当前目录是 skill 安装目录，必须先切到用户项目目录；无法判断时询问用户输出目录。
 
+## Android WebView Probe
+
+Android Probe 用于复核 `webView:true` / `webJs` / CSR 页面的正文链路。它运行在真实 Android WebView 上，是 validator 最接近 Legado App 的验证方式。
+
+### 什么情况需要
+
+- 正文页为 CSR（Nuxt/Next.js/Vue 等前端框架渲染）
+- 书源使用了 `webView:true` 或 `webJs`
+- HTTP/Browser 模式的正文返回空内容或 JS 壳
+
+### 设备环境
+
+**必需：**
+- 一台 **打开 USB 调试** 的 Android 真机（或已启动的 Android 模拟器）
+- 电脑通过 USB 数据线连接手机
+- 电脑上有 `adb`（Android SDK Platform-Tools）
+
+**adb 安装：** 双击 `validator/setup-adb.bat`（自动从 Google 官方下载到 `validator/tools/platform-tools/`）
+
+**Probe 安装与启动：** 双击 `validator/setup-android-probe.bat`（自动安装 APK + 启动 + 端口转发）
+
+### 不插手机的情况
+
+**没有 Android 设备也能生成书源。** 流程如下：
+
+1. AI 正常执行全流程，生成 `book-source.json`
+2. 遇到 `webView:true` / `webJs` 的正文时，validator 标记 `needs_app_review` 或 `validator_limitation`
+3. AI 交付书源时明确说明：**"搜索/详情/目录已验证通过，正文需要 App 端复核"**
+4. **用户操作**：将 `book-source.json` 导入 Legado App → 搜索一本书 → 尝试阅读正文
+5. 如果正文正常 → 完成
+6. 如果正文失败 → 用户在 Legado App 内打开书源调试 → 截图/复制日志 → 反馈给 AI
+7. AI 根据日志回修规则，循环直到正文可用
+
+**AI 必须主动告知用户**：书源已生成但正文未在 Android 设备上验证，需要用户在 App 端测试并反馈结果。
+
+### 结果状态对应
+
+| 场景 | 状态 |
+|------|------|
+| 无 Android 设备 + CSR 正文 | `validator_limitation` — 需 App 复核 |
+| 有 Android 设备 + Probe 通过 | `anonymous_candidate`（有登录态特征）或 `passed` |
+| 有 Android 设备 + Probe 失败 | 根据错误自动回修（最多 3 次） |
+
 ## Validator 生命周期管理
 
 **禁止无提示隐藏启动 validator。**
