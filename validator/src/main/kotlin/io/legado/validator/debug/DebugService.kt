@@ -608,6 +608,9 @@ class DebugService {
                     url = chapter.url,
                     headers = source.getHeaderMap(),
                     javaScript = webJs,
+                    timeout = 120000L,
+                    jsRetries = 150,
+                    jsDelay = 200L,
                     screenshot = true
                 )
                 val probeRes = AndroidProbeService.render(probeReq)

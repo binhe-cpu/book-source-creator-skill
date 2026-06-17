@@ -19,6 +19,7 @@ class ProbeHttpServer(
             uri == "/render" && session.method == Method.POST -> handleRender(session)
             uri == "/ping" -> newFixedLengthResponse(Response.Status.OK, "text/plain", "pong")
             uri == "/info" -> handleInfo()
+            uri == "/test" -> handleTest()
             else -> newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json",
                 """{"error":"Not found"}""")
         }
@@ -33,6 +34,23 @@ class ProbeHttpServer(
 
             val request = gson.fromJson(jsonBody, RenderRequest::class.java)
             val response = runBlocking { runner.render(request) }
+            newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(response))
+        } catch (e: Exception) {
+            newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json",
+                """{"ok":false,"error":"${e.message?.replace("\"", "\\\"")}"}""")
+        }
+    }
+
+    private fun handleTest(): Response {
+        return try {
+            val request = RenderRequest(
+                url = "data:text/html,<h1>Probe OK</h1><p>WebView works</p>",
+                timeout = 10000L,
+                jsRetries = 3,
+                jsDelay = 500L,
+                screenshot = false
+            )
+            val response = kotlinx.coroutines.runBlocking { runner.render(request) }
             newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(response))
         } catch (e: Exception) {
             newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json",

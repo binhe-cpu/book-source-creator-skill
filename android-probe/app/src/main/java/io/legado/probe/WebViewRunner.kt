@@ -28,7 +28,7 @@ class WebViewRunner(private val context: Context) {
                             domStorageEnabled = true
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                             blockNetworkImage = true
-                            request.headers["User-Agent"]?.let { userAgentString = it }
+                            request.headers?.get("User-Agent")?.let { userAgentString = it }
                         }
                     }
 
@@ -73,7 +73,7 @@ class WebViewRunner(private val context: Context) {
                         cookieManager.setCookie(request.url, request.cookies)
                         cookieManager.flush()
                     }
-                    webView.loadUrl(request.url, request.headers)
+                    webView.loadUrl(request.url, request.headers ?: emptyMap())
                 }
             }
         } catch (e: TimeoutCancellationException) {

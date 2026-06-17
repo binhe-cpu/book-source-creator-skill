@@ -2,6 +2,8 @@ package io.legado.validator.probe
 
 import com.google.gson.Gson
 import io.legado.validator.help.http.HttpHelper
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
 import java.io.File
 
 data class ProbeDevice(
@@ -44,6 +46,12 @@ object AndroidProbeService {
     private val gson = Gson()
     private const val PROBE_PORT = 18888
     private const val LOCAL_PORT = 18888
+    private val probeClient = okhttp3.OkHttpClient.Builder()
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(150, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .callTimeout(180, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
 
     internal fun findLocalAdb(baseDir: File = File(".")): String? {
         val candidates = listOf(
@@ -119,19 +127,20 @@ object AndroidProbeService {
 
     fun render(request: ProbeRenderRequest): ProbeRenderResponse {
         return try {
-            // Inject cookies from CookieStore if not provided in request
             val effectiveRequest = if (request.cookies == null) {
                 val domain = try { java.net.URL(request.url).host.lowercase() } catch (_: Exception) { "" }
                 val storedCookie = if (domain.isNotEmpty()) io.legado.validator.web.CookieStore.getCookie(domain) else null
                 if (storedCookie != null) request.copy(cookies = storedCookie) else request
             } else request
             val json = gson.toJson(effectiveRequest)
-            val res = HttpHelper.post(
-                "http://127.0.0.1:$LOCAL_PORT/render",
-                json,
-                contentType = "application/json"
-            )
-            gson.fromJson(res.body, ProbeRenderResponse::class.java)
+            val reqBody = json.toRequestBody("application/json".toMediaType())
+            val httpRequest = okhttp3.Request.Builder()
+                .url("http://127.0.0.1:$LOCAL_PORT/render")
+                .post(reqBody)
+                .build()
+            val response = probeClient.newCall(httpRequest).execute()
+            val body = response.body?.string() ?: ""
+            gson.fromJson(body, ProbeRenderResponse::class.java)
         } catch (e: Exception) {
             ProbeRenderResponse(ok = false, error = "Probe request failed: ${e.message}")
         }
