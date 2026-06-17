@@ -91,6 +91,9 @@ object BookChapterList {
         val list = ArrayList(lh)
         list.reverse()
         DebugLog.log("◇目录总数:${list.size}")
+        if (nextUrlList.size <= 1 && list.size < 5 && list.size > 0) {
+            DebugLog.log("⚠ 目录仅解析到 ${list.size} 章（${nextUrlList.size} 页），如果站点目录是分页 API，请检查 nextTocUrl 规则是否正确配置")
+        }
         coroutineContext.ensureActive()
         list.forEachIndexed { index, bookChapter ->
             bookChapter.index = index

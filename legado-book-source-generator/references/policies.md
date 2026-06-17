@@ -7,6 +7,21 @@
 3. 用户拒绝登录时可以继续生成，但最终状态必须是 `degraded` / `high-risk`，需要 App 复核。
 4. 如果登录需要扫码、验证码、短信或其他人工确认，立即请求用户协助，不要猜。
 
+### 登录凭据采集渠道
+
+| 方式 | 适用场景 | 操作 |
+|------|---------|------|
+| 手机扫码登录 | App loginUi 配置了账号密码/扫码 | 用户在 Legado App 内操作 |
+| Token 手动输入 | 用户已知 Cookie/Token 字符串 | 用户粘贴，AI 写入 `--cookie=<file>` 参数 |
+| Browser MCP 提取 Cookie | 站点需桌面浏览器登录 | 用户通过 Browser MCP 登录 → AI 调用 `browser_evaluate` 执行 `document.cookie` → 提取并保存为 JSON 文件 → `--cookie=<file>` 喂给 validator |
+
+**Browser MCP 提取流程:**
+1. 用户打开目标站点登录页，在 Browser MCP 中完成登录（账号密码/扫码）
+2. AI 调用 `browser_evaluate` 执行 `document.cookie` 获取 cookie 字符串
+3. AI 将 cookie 解析为 `{"domain": "cookie_string"}` JSON 格式
+4. 保存到 `runs/<site-slug>/cookies.json`
+5. 调用 `node scripts/validate-with-validator.mjs <source> <keyword> --cookie=runs/<site-slug>/cookies.json`
+
 ## 风险升级
 
 - 用户选择不登录分析：后续所有评估和生成提高风险等级。
