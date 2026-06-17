@@ -8,7 +8,10 @@ data class RenderRequest(
     val timeout: Long = 60000L,
     val jsRetries: Int = 30,
     val jsDelay: Long = 1000L,
-    val screenshot: Boolean = true
+    val screenshot: Boolean = true,
+    // Gap #8: support loadDataWithBaseURL — matches Legado BackstageWebView.load()
+    val html: String? = null,
+    val encoding: String? = null
 )
 
 data class RenderResponse(

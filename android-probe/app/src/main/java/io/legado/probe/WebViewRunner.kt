@@ -73,7 +73,13 @@ class WebViewRunner(private val context: Context) {
                         cookieManager.setCookie(request.url, request.cookies)
                         cookieManager.flush()
                     }
-                    webView.loadUrl(request.url, request.headers ?: emptyMap())
+                    // Gap #8: match Legado BackstageWebView.load() — loadDataWithBaseURL when html provided
+                    if (!request.html.isNullOrEmpty()) {
+                        val encoding = request.encoding ?: "utf-8"
+                        webView.loadDataWithBaseURL(request.url, request.html, "text/html", encoding, request.url)
+                    } else {
+                        webView.loadUrl(request.url, request.headers ?: emptyMap())
+                    }
                 }
             }
         } catch (e: TimeoutCancellationException) {
