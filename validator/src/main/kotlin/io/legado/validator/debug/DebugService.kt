@@ -604,8 +604,11 @@ class DebugService {
             try {
                 val contentRule = source.getContentRule()
                 val webJs = contentRule.webJs
+                // 剥离 URL options（如 ,{"webView":true}）——匹配 Legado AnalyzeUrl 行为
+                // JsonPath 模板生成的 URL 会把 options 当作 URL 字面量，probe 需要纯 URL
+                val cleanUrl = chapter.url.replace(Regex(",\\{[^}]*\\}$"), "")
                 val probeReq = ProbeRenderRequest(
-                    url = chapter.url,
+                    url = cleanUrl,
                     headers = source.getHeaderMap(),
                     javaScript = webJs,
                     timeout = 120000L,
@@ -617,7 +620,7 @@ class DebugService {
                 if (!probeRes.ok) {
                     return@withContext DebugStep(
                         phase = "content", status = "error", mode = "android",
-                        request = DebugStep.RequestInfo(url = chapter.url, method = "GET", headers = source.getHeaderMap(), body = null),
+                        request = DebugStep.RequestInfo(url = cleanUrl, method = "GET", headers = source.getHeaderMap(), body = null),
                         error = probeRes.error ?: "Probe render failed",
                         probeAvailable = true,
                         probeDevice = probeInfo.device?.serial,
@@ -627,7 +630,7 @@ class DebugService {
                     )
                 }
                 val analyzeRule = AnalyzeRule(book, source)
-                analyzeRule.setContent(probeRes.html ?: "", chapter.url)
+                analyzeRule.setContent(probeRes.html ?: "", cleanUrl)
                 val content = analyzeRule.setFieldName("content").getString(contentRule.content)
                 val jsErrMsg = probeRes.jsError
                 val status = if (content.isBlank()) "error" else "success"
@@ -641,7 +644,7 @@ class DebugService {
                     phase = "content",
                     status = status,
                     mode = "android",
-                    request = DebugStep.RequestInfo(url = chapter.url, method = "GET", headers = source.getHeaderMap(), body = null),
+                    request = DebugStep.RequestInfo(url = cleanUrl, method = "GET", headers = source.getHeaderMap(), body = null),
                     response = DebugStep.ResponseInfo(
                         code = 200,
                         contentType = "text/html",
