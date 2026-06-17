@@ -89,7 +89,8 @@ curl -X POST http://localhost:1111/api/debug/smoke \
 
 | 状态 | 含义 | Skill 动作 |
 |------|------|-----------|
-| `passed` | 全链路 success，所有字段有值 | 交付书源 |
+| `passed` | 全链路 success + 无登录态特征，或已完成登录态验证 | 交付书源 |
+| `anonymous_candidate` | 匿名全链路 success，但站点有 loginUrl/enabledCookieJar/Authorization/webJs/webView | 不能标可用，需登录态/App 复核 |
 | `failed` | 某阶段 error，有可修证据 | AI 自动回修 |
 | `needs_app_review` | needsAppReview=true 或命中 App-only 行为 | 停止自动修，标记需复核 |
 | `validator_limitation` | validator 不支持的规则能力（如 @js 动态 URL） | validator 无法验证该能力；预期需要 App/WebView 复核。当前不是 full pass，不能标可用。 |
@@ -99,8 +100,10 @@ curl -X POST http://localhost:1111/api/debug/smoke \
 ## 判定逻辑
 
 ```
-if 全 phases == "success":
+if 全 phases == "success" AND 无登录态特征 (loginUrl/enabledCookieJar/Authorization/webJs/webView):
     status = "passed"
+elif 全 phases == "success" AND 有登录态特征:
+    status = "anonymous_candidate"  // 匿名通过但不能标可用
 elif step.needsAppReview == true:
     status = "needs_app_review"
 elif step.error 含 "Cloudflare|Turnstile|验证码|登录|WebView":

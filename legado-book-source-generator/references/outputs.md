@@ -40,7 +40,7 @@ runs/<site-slug>/
   1. `npm run validate` — JSON 结构校验
   2. `node scripts/validate-with-validator.mjs` — 真实链路验证（search→detail→toc→content）
   3. **必须保存 `validator-report.json`**（含 phases/error/ruleHits/bodyPreview），不能只写 summary
-- 只有 validator 报告 `status=passed` 才能标"可用"
+- 只有 validator 报告 `status=passed`（无登录态特征或已完成登录态验证）才能标"可用"。匿名 `passed` 但站点有 loginUrl/enabledCookieJar/Authorization/webJs/webView 时，只能标 `anonymous_candidate`，不能标可用。
 
 ## 可用脚本
 
