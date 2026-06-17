@@ -39,7 +39,38 @@ class AnalyzeUrl(
         if (baseUrl.isEmpty()) {
             baseUrl = source?.bookSourceUrl ?: ""
         }
-        headerMap.putAll(source?.getHeaderMap() ?: emptyMap())
+        // Gap #4: evaluate JS in header field — matches Legado's getHeaderMap(true)
+        val headerStr = source?.header
+        if (!headerStr.isNullOrBlank()) {
+            if (headerStr.startsWith("@js:")) {
+                val jsResult = evalJsUrl(headerStr.substring(4))
+                if (jsResult != null) {
+                    try {
+                        val type = object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                        val map: Map<String, String> = com.google.gson.Gson().fromJson(jsResult, type)
+                        headerMap.putAll(map)
+                    } catch (_: Exception) {
+                        headerMap.putAll(source?.getHeaderMap() ?: emptyMap())
+                    }
+                }
+            } else if (headerStr.startsWith("<js>") && headerStr.endsWith("</js>")) {
+                val jsCode = headerStr.substring(4, headerStr.length - 5)
+                val jsResult = evalJsUrl(jsCode)
+                if (jsResult != null) {
+                    try {
+                        val type = object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                        val map: Map<String, String> = com.google.gson.Gson().fromJson(jsResult, type)
+                        headerMap.putAll(map)
+                    } catch (_: Exception) {}
+                }
+            } else {
+                try {
+                    val type = object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                    val map: Map<String, String> = com.google.gson.Gson().fromJson(headerStr, type)
+                    headerMap.putAll(map)
+                } catch (_: Exception) {}
+            }
+        }
         initUrl()
     }
 
