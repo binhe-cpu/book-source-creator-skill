@@ -33,67 +33,6 @@
 
 本仓库用文档、样例、辅助脚本和测试把这些问题收成可执行规范。
 
-## 仓库结构
-
-```text
-.
-├─ README.md
-├─ legado-book-source-generator/
-│  ├─ SKILL.md                    # 主入口：强制顺序、核心规则、输出结构
-│  ├─ README.txt                  # Release 包使用说明
-│  ├─ package.json                # npm scripts
-│  ├─ examples/
-│  │  ├─ README.md
-│  │  ├─ 163zw/                   # 真实闭环样例
-│  │  ├─ 69shuba-com/             # 冒烟测试样例（POST搜索、目录嵌详情页）
-│  │  ├─ static-html-site/        # 静态HTML样例
-│  │  ├─ json-api-site/           # JSON API样例
-│  │  ├─ webview-fallback-site/   # WebView回退样例
-│  │  └─ login-required-site/     # 需登录样例
-│  ├─ references/
-│  │  ├─ policies.md              # 硬阻断规则与风险判断
-│  │  ├─ workflow.md              # 完整工作流（含 validator 验证）
-│  │  ├─ outputs.md               # 交付物格式
-│  │  ├─ validator-integration.md # validator API 与状态判定
-│  │  ├─ validation-policy.md     # 验证策略与自动回修闭环
-│  │  ├─ failure-diagnosis.md     # 故障诊断
-│  │  ├─ assessment-template.md   # 可生成性评估模板
-│  │  ├─ analysis-workflow.md     # 四链路分析结构
-│  │  ├─ legado-json-structure.md # JSON字段要求
-│  │  ├─ legado-official-rule-notes.md
-│  │  ├─ reference-source-patterns.md
-│  │  ├─ debugging-collaboration.md
-│  │  └─ validation-checklist.md
-│  ├─ scripts/
-│  │  ├─ project-helper.mjs       # CLI入口（scaffold / validate）
-│  │  ├─ audit-source.mjs         # 静态审计
-│  │  ├─ validate-with-validator.mjs  # validator 验证脚本
-│  │  └─ lib/
-│  │     ├─ slug.mjs              # URL转slug
-│  │     ├─ output-bundle.mjs     # 脚手架生成
-│  │     ├─ source-validate.mjs   # JSON校验
-│  │     └─ source-audit.mjs      # 审计逻辑
-│  ├─ tests/
-│  │  ├─ project-helper.test.mjs  # 单元测试
-│  │  ├─ source-audit.test.mjs    # 审计测试
-│  │  └─ blackbox.test.mjs        # 黑盒测试（CLI + 文档契约）
-│  └─ validator/                  # 内置 validator（运行包）
-│     ├─ run.bat                  # 启动服务
-│     ├─ stop.bat                 # 停止服务
-│     ├─ setup-adb.bat             # 下载并安装 adb 到本地 tools/
-│     ├─ setup-android-probe.bat   # 安装并启动 Android Probe
-│     ├─ android-probe.apk         # Android WebView Probe（Release 包内）
-│     ├─ README.txt               # validator 使用说明
-│     ├─ app/
-│     │  └─ legado-source-validator.jar
-│     └─ examples/               # 测试样例（sources/cases/candidates）
-├─ validator/                     # validator 源码（开发用）
-   ├─ src/
-   ├─ build.gradle.kts
-   └─ examples/
-└─ android-probe/                 # Android WebView Probe 源码（开发用）
-```
-
 ## 输出结构
 
 ```text
@@ -124,28 +63,44 @@ runs/<site-slug>/
 
 ## 推荐使用流程
 
-1. 匿名初探 search/detail/toc/content 四条链路
-2. 输出 `assessment.md` 到 `runs/`，立即展示评估摘要
-3. 用 Browser MCP 分析搜索、详情、目录、正文
-4. 结合官方规则和模式矩阵生成 `book-source.json` 到 `outputs/`
-5. 用 validator 跑真实链路验证（`node scripts/validate-with-validator.mjs`）
-6. 若站点有 `loginUrl`、`enabledCookieJar`、`Authorization`、`webJs` 或 `webView`，匿名验证只能算初筛，必须优先做登录态或 App/WebView 复核
-7. validator 失败时 AI 自动回修规则（最多 3 次）
-8. 只有硬边界（验证码、Cloudflare、付费墙、Android WebView 不可用等）才需人工/App 复核
+> **AI 执行** = AI 自主完成 &nbsp;|&nbsp; **人类协助** = 需要人类操作
+
+1. **AI** 匿名初探 search/detail/toc/content 四条链路
+2. **AI** 输出 `assessment.md` 到 `runs/`，立即展示评估摘要
+3. **AI** 用 Browser MCP 分析搜索、详情、目录、正文；**人类** 操作浏览器登录（如需要）
+4. **AI** 结合官方规则和模式矩阵生成 `book-source.json` 到 `outputs/`
+5. **AI** 用 validator 跑真实链路验证
+6. **AI** 若站点有 `loginUrl`、`enabledCookieJar`、`Authorization`、`webJs` 或 `webView`，匿名验证只算初筛；**人类** 提供登录凭据（手机扫码 / Token / Browser MCP Cookie）完成登录态复核
+7. **AI** validator 失败时自动回修规则（最多 3 次）
+8. 只有硬边界（验证码、Cloudflare、付费墙、Android WebView 不可用等）才需 **人类/App** 复核
 
 固定评级只有四种：`可直接生成` / `可生成但高风险` / `需登录后再评估` / `不建议生成`
 
 ## 安装
 
-### 方式 0：下载 Release 包（推荐给普通用户）
+### 方式 0：作为 Claude Code Skill（推荐）
+
+把 [`legado-book-source-generator`](./legado-book-source-generator) 目录复制到你的 Claude Code skills 目录：
+
+```text
+~/.claude/skills/legado-book-source-generator/
+├─ SKILL.md
+├─ agents/
+├─ examples/
+├─ references/
+└─ scripts/
+```
+
+安装后对 AI 说：**"帮我给 https://xxx.com 生成书源"**。
+
+### 方式 1：下载 Release 包（人类调试 / 手动验证）
 
 1. 到 GitHub Releases 下载 `legado-book-source-generator-<version>.zip`
 2. 解压后进入 `legado-book-source-generator\validator\`
-3. 双击 `run.bat`
-4. 浏览器打开 `http://localhost:1111`
-5. 导入书源 JSON，输入关键词，选择验证模式后运行
+3. 双击 `run.bat`，浏览器打开 `http://localhost:1111`
+4. 导入书源 JSON，输入关键词，选择验证模式后运行
 
-`run.bat` 会打开可见窗口，窗口里按 `Ctrl+C` 可以停止；也可以双击 `stop.bat` 按端口停止服务。
+`run.bat` 会打开可见窗口，`Ctrl+C` 停止；也可以双击 `stop.bat`。
 
 Release 包里已经包含：
 
@@ -167,19 +122,6 @@ legado-book-source-generator\
 
 普通使用者不需要本地编译 Gradle 项目；只有开发 validator 或 Android Probe 时才需要 clone 仓库并构建。
 
-### 方式 1：作为 Claude Code Skill
-
-把 [`legado-book-source-generator`](./legado-book-source-generator) 目录复制到你的 Claude Code skills 目录：
-
-```text
-~/.claude/skills/legado-book-source-generator/
-├─ SKILL.md
-├─ agents/
-├─ examples/
-├─ references/
-└─ scripts/
-```
-
 ### 方式 2：作为 Codex Skill
 
 把目录复制到 `$CODEX_HOME/skills/legado-book-source-generator/`。
@@ -193,112 +135,12 @@ legado-book-source-generator\
 
 ## 环境要求
 
-必需：
-
-- Node.js 18+
-- Java 17+（用于 validator）
-- 可访问目标网站的网络环境
+- Node.js 18+ &nbsp;|&nbsp; Java 17+ &nbsp;|&nbsp; 可访问目标网站的网络环境
+- Claude Code / Codex（AI Skill 方式）
 - Browser MCP 或等价浏览器分析能力
+- adb + Android 设备（需要 WebView Probe 时）
 
-推荐：
-
-- Claude Code / Codex
-- Git
-- adb / Android SDK Platform Tools（需要 Android WebView Probe 时；Release 包内提供 `setup-adb.bat` 自动下载工具）
-- 可导入书源并验证的阅读 App（最终 App 复核用）
-
-### validator 环境配置
-
-只跑 HTTP / Browser / Auto 的普通验证时，必须有：
-
-- Java 17+
-- 可访问目标网站的网络环境
-
-启动方式：
-
-```powershell
-cd .\legado-book-source-generator\validator
-.\run.bat
-```
-
-浏览器打开：
-
-```text
-http://localhost:1111
-```
-
-停止方式：
-
-```powershell
-# run.bat 窗口里按 Ctrl+C
-# 或者
-.\stop.bat
-```
-
-### Android WebView Probe（可选）
-
-Android Probe 用于复核带 `webView:true` / `webJs` 的书源链路。它运行在真实 Android WebView 上，比桌面 Browser 模式更接近阅读 App，但仍不等于阅读 App 100% 通过。
-
-需要：
-
-- 一台打开 USB 调试的 Android 真机，或一个已启动的 Android 模拟器
-- `adb`（可用 Release 包内的 `setup-adb.bat` 自动下载）
-- Release 包内置的 `validator\android-probe.apk`
-
-Windows 上常见 ADB 路径：
-
-```text
-%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
-```
-
-validator 会按顺序自动查找：
-
-1. `validator\tools\platform-tools\adb.exe`（`setup-adb.bat` 安装位置）
-2. `ANDROID_HOME\platform-tools\adb.exe`
-3. `ANDROID_SDK_ROOT\platform-tools\adb.exe`
-4. `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`
-5. `PATH` 里的 `adb`
-
-自动安装 adb：
-
-```powershell
-cd .\legado-book-source-generator\validator
-.\setup-adb.bat
-```
-
-`setup-adb.bat` 会从 Google 官方地址下载 Windows Platform-Tools，并解压到当前 Release 包的 `validator\tools\platform-tools\`。它不会把 `adb.exe` 提交进仓库，也不会写入系统目录。
-
-如果需要手动配置：
-
-```powershell
-setx ANDROID_HOME "$env:LOCALAPPDATA\Android\Sdk"
-setx ANDROID_SDK_ROOT "$env:LOCALAPPDATA\Android\Sdk"
-setx PATH "$env:PATH;$env:LOCALAPPDATA\Android\Sdk\platform-tools"
-```
-
-安装并启动 Probe：
-
-```powershell
-cd .\legado-book-source-generator\validator
-.\setup-android-probe.bat
-```
-
-脚本会执行：
-
-- 检查 `adb`，缺失时自动调用 `setup-adb.bat`
-- 查找连接设备
-- 安装 `android-probe.apk`
-- 启动 `io.legado.probe/.WebViewProbeActivity`
-- 建立 `localhost:18888 -> device:18888` 端口转发
-
-没有连接设备时，validator 会返回：
-
-```text
-validator_limitation
-Android Probe 不可用: No Android devices connected
-```
-
-这不是书源失败，而是当前电脑没有可用 Android WebView 复核环境。
+详细 validator 启动、adb 安装、Android Probe 配置见 **[SETUP.md](docs/SETUP.md)**。
 
 ## 辅助脚本
 
@@ -358,6 +200,18 @@ npm test
 | `login-required-site/` | 模板 | 需要登录态才能访问 |
 
 样例不能替代实时站点实测，也不能直接复制到目标站点上套用。
+
+## 仓库结构
+
+```
+legado-book-source-generator/    # AI Skill 目录（SKILL.md + references + scripts + tests + validator）
+validator/                       # validator 源码（Kotlin/Gradle）
+android-probe/                   # Android WebView Probe 源码（Kotlin/Gradle）
+```
+
+详细结构见 [SKILL.md](./legado-book-source-generator/SKILL.md) 和 [SETUP.md](docs/SETUP.md)。
+
+---
 
 ## 限制与风险
 
