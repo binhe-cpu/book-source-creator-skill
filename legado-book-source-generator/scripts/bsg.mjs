@@ -410,6 +410,7 @@ function completePhase(phase, state, runDir) {
 
     // Login required but user hasn't logged in → block
     if (state.loginFeatures.hasEnabledCookieJar || state.loginFeatures.hasAuthorization) {
+      const adbOk = checkAdb();
       saveRunState(runDir, state);
       return {
         ok: true,
@@ -418,12 +419,25 @@ function completePhase(phase, state, runDir) {
         message: [
           "站点需要登录态（enabledCookieJar / Authorization），但尚未完成登录。",
           "",
-          "请在 Browser MCP 中打开站点登录页，完成登录操作。",
-          "登录后回复「已登录」，AI 将提取 Cookie 并继续。",
-          "如果你没有该站账号，回复「无账号」——书源将标为 anonymous_candidate，需在 App 内手动登录。",
+          adbOk
+            ? "检测到 Android 设备。优先用 Probe 原生登录（环境一致不掉验证码）："
+            : "未检测到 Android 设备。用 Browser MCP 桌面登录：",
+          "",
+          adbOk
+            ? "1. POST http://localhost:18888/login {\"url\":\"登录页URL\"} → 手机屏幕显示登录页"
+            : "1. 在 Browser MCP 中打开站点登录页，完成登录操作",
+          adbOk
+            ? "2. 用户在手机上完成登录，点底部 ✓ 完成登录"
+            : "2. 登录后回复「已登录」",
+          adbOk
+            ? "3. GET http://localhost:18888/cookie-check?domain=xxx 确认 Cookie"
+            : "3. AI 通过 browser_network_requests 提取 Cookie → 保存 cookies.json",
+          "",
+          "如果没有该站账号，回复「无账号」——书源标为 anonymous_candidate。",
         ].join("\n"),
         blockingPhase: "assess",
         reason: "login_required",
+        adbAvailable: adbOk,
       };
     }
 
