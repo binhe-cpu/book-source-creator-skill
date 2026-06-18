@@ -48,6 +48,8 @@ init → advance → advance → advance → advance → record-validation → a
 | 评级"不建议生成" | 等用户决定 |
 | WebView/CSR 正文但无 Android 设备 | 请用户连接手机（设置指南：`docs/SETUP.md`） |
 | 需要登录（enabledCookieJar/Authorization） | **adb 在线 → Probe 原生登录（/login + 手机完成）；无 adb → Browser MCP 登录 + Cookie 提取** |
+| **登录态丢失**（页面跳登录页、401/403、Cookie 失效） | **立即停止当前操作，告知用户登录态已失效，询问是否重新登录。不要反复重试。** |
+| Probe 和 Browser MCP 互斥提示 | 手机登录可能挤掉电脑会话（反之亦然）。如果一边登录后另一边立即失效，这是正常的——选择一条线坚持用。 |
 | Android Probe 需 adb 授权 | 用户在手机上确认 USB 调试 |
 | 同一错误连续 5 次（收敛失败） | 等用户决定 |
 

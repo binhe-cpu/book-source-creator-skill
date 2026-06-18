@@ -250,7 +250,7 @@ function cmdInit(args) {
       : "完整路径。先匿名初探 4 条链路，判断站点结构和反爬。",
     hint: fastMode
       ? "用 HTTP fetch 匿名探索 search/detail/toc/content 链路，记录发现到 analysis.md。"
-      : "用 Browser MCP 或 HTTP fetch 匿名探索 search/detail/toc/content 链路。**遇到登录墙立即停止，问用户能否登录。不要绕过。** 检测登录入口、反爬、WebView 需求。",
+      : "用 Browser MCP 或 HTTP fetch 匿名探索 search/detail/toc/content 链路。检测登录入口、反爬、WebView 需求。",
     outputs: {
       runsRoot,
       runDir,
@@ -345,7 +345,7 @@ function startPhase(phase, state, runDir) {
     return {
       ok: true,
       nextAction: "probe_site",
-      message: "匿名初探：用 HTTP fetch 或 Browser MCP 探索 search/detail/toc/content 四条链路。**如果任一步骤遇到登录墙（重定向到 /login、401/403、页面显示请先登录），立即停止探测，直接问用户能否登录。不要翻源码、不要查 localStorage、不要研究 API 绕过——登录是最快的路。**",
+      message: "匿名初探：用 HTTP fetch 或 Browser MCP 探索 search/detail/toc/content 四条链路。",
       requiredUserAction: null,
     };
   }
