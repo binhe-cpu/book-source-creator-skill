@@ -44,7 +44,7 @@
 
 1. **Cloudflare/Turnstile** — error 或 bodyPreview 含 "Cloudflare" / "Turnstile" / "challenge"
 2. **登录/验证码** — 需要登录态或验证码
-3. **WebView/App-only** — 需要 Android WebView 执行 JS
+3. **WebView/App-only** — 需要 WebView 但 Android Probe 不可用或验证失败
 4. **付费墙** — 内容需要付费
 
 以下情况标记 `validator_limitation`（不是 `needs_app_review`）：
