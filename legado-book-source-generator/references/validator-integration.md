@@ -2,7 +2,7 @@
 
 ## 概述
 
-Validator 是本地书源预验证工具，运行在 `http://localhost:1111`。Skill 生成书源后，先跑 validator 验证，再决定交付或回修。
+Validator 是本地书源预验证工具，运行在 `http://localhost:1111`。Skill 生成书源后，先跑 validator 验证，再决定交付或回修。生命周期管理由 `bsg.mjs validator-start/stop` 统一处理。
 
 ## 内置运行包
 
@@ -17,14 +17,9 @@ validator/
   examples/
 ```
 
-启动方式：
+人工启动：双击 `validator/run.bat`。脚本自动启动：`node scripts/bsg.mjs validator-start`。
 
-```powershell
-cd legado-book-source-generator/validator
-.\run.bat
-```
-
-启动后打开 `http://localhost:1111` 可使用浏览器调试台；脚本和 Skill 验证流程调用同一个后端 API。
+启动后打开 `http://localhost:1111` 可使用浏览器调试台。
 
 ## API 接口
 
@@ -42,29 +37,9 @@ curl -X POST http://localhost:1111/api/debug/run \
 - `sourceJson`：书源 JSON 字符串（数组或单对象均可）
 - `sourceUrl`：书源的 bookSourceUrl
 - `keyword`：搜索关键词
-- `mode`：`http` | `browser` | `android` | `auto`
+- `mode`：`http` | `browser` | `android`
 
-返回：
-```json
-{
-  "ok": true,
-  "phases": {"search": "success", "detail": "success", "toc": "success", "content": "success"},
-  "summary": {"resultCount": 50, "firstBook": "...", "chapterCount": 2565, "contentPreview": "..."},
-  "steps": [
-    {
-      "phase": "search",
-      "status": "success",
-      "mode": "http",
-      "request": {"url": "...", "method": "GET", "headers": {}, "body": null},
-      "response": {"code": 200, "contentType": "...", "bodyPreview": "...", "bodyLength": 12345},
-      "ruleHits": [
-        {"field": "name", "rule": "Default:td.odd a", "value": "凡人修仙传", "success": true}
-      ],
-      "extracted": {"resultCount": 50, "firstBook": {...}}
-    }
-  ]
-}
-```
+返回结构见 `validator-report.json`（包含 phases、steps、ruleHits、bodyPreview）。
 
 ### POST /api/debug/smoke
 
@@ -76,15 +51,6 @@ curl -X POST http://localhost:1111/api/debug/smoke \
   -d '{}'
 ```
 
-返回：
-```json
-{
-  "ok": true,
-  "total": 7, "pass": 7, "fail": 0, "error": 0, "skip": 0,
-  "results": [...]
-}
-```
-
 ## 状态判定
 
 | 状态 | 含义 | Skill 动作 |
@@ -93,9 +59,8 @@ curl -X POST http://localhost:1111/api/debug/smoke \
 | `anonymous_candidate` | 匿名全链路 success，但站点有 loginUrl/enabledCookieJar/Authorization/webJs/webView | 不能标可用，需登录态/App 复核 |
 | `failed` | 某阶段 error，有可修证据 | AI 自动回修 |
 | `needs_app_review` | needsAppReview=true 或命中 App-only 行为 | 停止自动修，标记需复核 |
-| `validator_limitation` | validator 不支持的规则能力（如 @js 动态 URL） | validator 无法验证该能力；预期需要 App/WebView 复核。当前不是 full pass，不能标可用。 |
-| `failed_unresolved` | AI 回修 5 次后仍未通过 | 标记未解决，需人工检查 |
-| `blocked` | validator 未运行 | 阻塞，要求启动 validator，除非用户明确选择"仅生成未验证草稿" |
+| `validator_limitation` | validator 不支持的规则能力 | validator 无法验证该能力；预期需要 App/WebView 复核 |
+| `failed_unresolved` | 同一错误连续 5 次未修复（收敛失败） | 标记未解决，需人工检查 |
 
 ## 判定逻辑
 
@@ -103,7 +68,7 @@ curl -X POST http://localhost:1111/api/debug/smoke \
 if 全 phases == "success" AND 无登录态特征 (loginUrl/enabledCookieJar/Authorization/webJs/webView):
     status = "passed"
 elif 全 phases == "success" AND 有登录态特征:
-    status = "anonymous_candidate"  // 匿名通过但不能标可用
+    status = "anonymous_candidate"
 elif step.needsAppReview == true:
     status = "needs_app_review"
 elif step.error 含 "Cloudflare|Turnstile|验证码|登录|WebView":
@@ -118,11 +83,7 @@ else:
     status = "needs_app_review"  // 保守判定
 ```
 
-回修 5 次后仍未通过 → `failed_unresolved`
-
-## 前置检查与生命周期管理
-
-### 探测
+## 前置检查
 
 调用 validator 前，先检查是否运行：
 
@@ -134,38 +95,10 @@ curl -s http://localhost:1111/api/sources >nul 2>&1 && echo Running || echo Not 
 
 已有服务则复用，不重复启动。
 
-### Android Probe / adb
+## Android Probe / adb
 
-使用 `mode=android` 或 `mode=auto` 处理 `webView:true` / `webJs` 时需要 adb 和已连接 Android 设备/模拟器。
+使用 `mode=android` 处理 `webView:true` / `webJs` 时需要 adb 和已连接 Android 设备/模拟器。
 
 - 缺 adb：运行 `validator/setup-adb.bat`，脚本会从 Google 官方地址下载 Windows Platform-Tools 到 `validator/tools/platform-tools/`
 - 安装并启动 Probe：运行 `validator/setup-android-probe.bat`
 - 找不到设备：返回 `validator_limitation` / `Android Probe 不可用: No Android devices connected`
-
-`setup-adb.bat` 不把 adb 写入仓库，也不写系统目录；只安装到当前 validator 运行包。
-
-### 启动
-
-**禁止无提示隐藏启动。**
-
-- **用户手动启动**：双击 `validator/run.bat`
-  - 可见窗口，标题显示 `Legado Source Validator - http://localhost:1111`
-  - Ctrl+C 或关窗口停止
-- **AI 启动**：
-  - 前台运行：`java -jar validator/app/legado-source-validator.jar`
-  - 后台启动：记录 PID 到 `runs/<site-slug>/validator.pid`
-  - 必须在回复中说明：服务地址、启动方式、停止方式、PID
-
-### 停止
-
-- **AI 本次启动的** → 验证结束后负责关闭
-- **用户原本开的** → 不要关
-- 停止方式：
-  - `validator/stop.bat`（按端口停止，给人/AI 用）
-  - `taskkill /PID <pid> /F`（按 PID 停止）
-
-### 获取 PID
-
-```powershell
-for /f "tokens=5" %a in ('netstat -aon ^| findstr :1111 ^| findstr LISTENING') do echo PID: %a
-```

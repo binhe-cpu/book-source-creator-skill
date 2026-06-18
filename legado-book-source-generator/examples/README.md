@@ -1,38 +1,26 @@
 # 样例目录
 
-本目录存放书源样例，包括真实站点闭环样例和按模式分类的教学模板。
+本目录存放经过真实站点闭环验证的书源样例。
 
-## 当前样例
+## 样例
 
-**真实站点：**
-- `163zw/`: 163中文网完整闭环（评估+分析+书源+验收）
-- `69shuba-com/`: 69书吧冒烟测试样例（POST搜索、目录嵌详情页、纯静态HTML）
-
-**模式模板：**
-- `static-html-site/`: 静态HTML（纯CSS选择器提取）
-- `json-api-site/`: JSON API（REST接口，JSONPath提取）
-- `webview-fallback-site/`: WebView回退（正文需WebView渲染）
-- `login-required-site/`: 需登录站点（loginUrl + enabledCookieJar）
-- `gbk-encoding-site/`: GBK编码站点（URL options 声明 charset）
-- `content-pagination-site/`: 正文分页站点（nextContentUrl 同章翻页）
+| 样例 | 复杂度 | 关键特征 |
+|------|--------|----------|
+| `pattern-css-pagination/` | 中 | CSS 选择器 + JS 内容处理 + 目录分页 |
+| `pattern-post-detail-toc/` | 低 | POST 搜索、目录嵌详情页、纯静态 HTML |
+| `pattern-api-webview-auth/` | 高 | JSON API 搜索/详情/目录 + CSR WebView 正文 + enabledCookieJar + loginUrl + header JS |
 
 ## 使用规则
 
-- 样例用于说明交付结构与规则组织方式。
-- 真实站点样例不构成对目标站点长期可用性的保证。
-- 模式模板使用虚构域名，仅演示规则写法，不可直接导入使用。
+- 样例用于说明交付结构与规则组织方式，不构成对目标站点长期可用性的保证。
 - 样例不替代目标站点的 Browser MCP 实测。
-- 当目标站点因为签名、加密、CSR 空壳或浏览器渲染而接近被判成 `不建议生成` 时，必须先回看样例与 `references/reference-source-patterns.md`，确认是否存在可复用的 fallback 模式。
+- 生成复杂站点的书源时，先找最接近的样例对照结构，但规则必须针对目标站点实测调整。
+- 不要在 validator 验证前直接复制样例规则到目标站点。
 
-## 样例分类说明
+## 典型场景对照
 
-| 样例 | 类型 | 复杂度 | 关键特征 |
-|------|------|--------|----------|
-| 163zw | 真实闭环 | 中 | 完整评估+分析+书源+验收，CSS选择器+JS内容处理 |
-| 69shuba-com | 真实站点 | 低 | POST搜索、目录嵌详情页、纯静态HTML |
-| static-html-site | 模板 | 低 | CSS选择器直接提取 |
-| json-api-site | 模板 | 低 | REST接口，JSONPath提取 |
-| webview-fallback-site | 模板 | 中 | 正文需WebView，chapterUrl用##\$##拼接选项 |
-| login-required-site | 模板 | 中 | loginUrl + enabledCookieJar + header |
-| gbk-encoding-site | 模板 | 低 | URL options 声明 charset=gbk |
-| content-pagination-site | 模板 | 中 | nextContentUrl 同章翻页，正则区分同章/跳章 |
+| 站点特征 | 参考样例 |
+|---------|---------|
+| 搜索/详情/目录用公开 JSON API，正文 CSR 需 WebView | `pattern-api-webview-auth/` |
+| 纯静态 HTML，CSS 选择器直提 | `pattern-css-pagination/` |
+| POST 搜索，详情页内嵌目录 | `pattern-post-detail-toc/` |

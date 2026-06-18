@@ -79,7 +79,7 @@ validator 返回失败后，按以下顺序检查：
 
 **症状**: validator HTTP mode 下 search/detail 正常，toc success 但 `chapterCount` 为 1（站点实际有几百章）
 
-**原因**: `ruleBookInfo.tocUrl` 指向错误的 API endpoint。常见于手写或 AI 生成的 tocUrl 使用了不存在的路径（如旧版 novalpie 用了 `/api/chapter/list.php?novel_id={$.id}` 而非 `/api/novels/{{$.id}}/chapters`）。
+**原因**: `ruleBookInfo.tocUrl` 指向错误的 API endpoint。常见于手写或 AI 生成的 tocUrl 使用了不存在的路径（如某 API 站点用了 `/api/chapter/list.php?novel_id={$.id}` 而非实际路径 `/api/novels/{{$.id}}/chapters`）。
 
 **诊断**: 在 Browser MCP 中直接访问 TOC API，确认返回数据结构。检查 `tocUrl` 中的 `{{ }}` 变量替换是否正确。
 

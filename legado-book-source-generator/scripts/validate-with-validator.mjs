@@ -11,7 +11,7 @@
  * 参数:
  *   source-json-file: 书源 JSON 文件路径
  *   keyword: 搜索关键词
- *   mode: http | browser | auto (默认 http)
+ *   mode: http | browser | android (默认 http)
  * 
  * 输出:
  *   打印 JSON 报告到 stdout
@@ -119,14 +119,14 @@ async function main() {
   const args = process.argv.slice(2);
   
   if (args.length < 2) {
-    console.error('用法: node validate-with-validator.mjs <source-json-file> <keyword> [http|browser|auto] [--output <dir>] [--cookie=<file>]');
+    console.error('用法: node validate-with-validator.mjs <source-json-file> <keyword> [http|browser|android] [--output <dir>] [--cookie=<file>]');
     process.exit(1);
   }
   
   const sourceFile = args[0];
   const keyword = args[1];
   const outputIdx = args.indexOf('--output');
-  const modeIdx = args.findIndex(a => ['http', 'browser', 'auto'].includes(a));
+  const modeIdx = args.findIndex(a => ['http', 'browser', 'android', 'auto'].includes(a));
   const mode = modeIdx >= 0 ? args[modeIdx] : 'http';
   const outputDir = outputIdx >= 0 ? args[outputIdx + 1] : null;
   const cookieArg = args.find(a => a.startsWith('--cookie='));

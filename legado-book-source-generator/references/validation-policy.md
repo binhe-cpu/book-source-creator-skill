@@ -1,38 +1,12 @@
 # 验证策略
 
-## 核心原则
-
-1. **validator 失败不是结束条件** — 失败后 AI 必须先根据证据自动回修
-2. **needsAppReview 才是硬边界** — 只有命中 App/人工边界时才停止自动修
-3. **pass ≠ 书源可用** — 要看 case 的 expected，预期 error 的 case pass 只说明 validator 正确识别限制
-4. **新生成书源必须跑完整链路** — 只跑搜索不能标"可用"
-
-## 自动回修闭环
-
-```
-生成初版书源
-  ↓
-跑 /api/debug/run
-  ↓
-读 steps、error、bodyPreview、ruleHits
-  ↓
-判断失败类型 → AI 自动回修
-  ↓
-再跑 validator
-  ↓
-循环 2-5 次（避免瞎改）
-  ↓
-通过 → 交付
-未通过 → 标记需复核
-```
-
-## 失败类型 → 回修动作
+## 回修动作参考
 
 | 失败类型 | 证据来源 | 回修动作 |
 |---------|---------|---------|
 | URL 没拼对 | error 含 "URL scheme" / "no scheme" | 修 searchUrl/bookUrl/chapterUrl，补 baseUrl |
 | 字段没命中 | ruleHits 中某字段 success=false | 修对应规则字段（CSS/JSONPath/Regex） |
-| 编码问题 | error 含 "charset" / "编码" / bodyPreview 乱码 | 补 charset 或改编码处理 |
+| 编码问题 | error 含 "charset" / bodyPreview 乱码 | 补 charset 或改编码处理 |
 | POST/body 错 | error 含 "POST" / "body" / request.method 不对 | 修请求格式 |
 | JSONPath/CSS 错 | error 含 "SelectorParseException" / "PathNotFoundException" | 局部改规则 |
 | 重定向未跟随 | response.code=301/302 但 error | 检查是否需要跟随重定向 |
@@ -53,14 +27,7 @@
 
 以下情况标记 `failed_unresolved`：
 
-6. **5 次回修后仍未通过** — 未命中上述任何硬边界，但 AI 无法修复
-
-## 循环次数限制
-
-- 最多循环 5 次
-- 每次循环必须有明确的回修动作（不能瞎改）
-- 5 次后仍未通过 → 标记 `failed_unresolved`，附带所有失败证据
-- 如果 5 次内命中硬边界（needs_app_review/validator_limitation）→ 立即停止，不继续循环
+6. **收敛失败** — 同一错误连续 5 次未修复（相同 error + 相同失败字段），判定为死循环，停止自动回修
 
 ## 验收标准
 

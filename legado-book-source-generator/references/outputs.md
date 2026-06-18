@@ -1,19 +1,5 @@
 # 交付物格式
 
-## 输出目录规则
-
-**输出目录必须是用户任务工作目录，不写入 skill 安装目录。**
-
-- 默认输出根目录：当前工作目录的 `outputs/` 和 `runs/`
-- 如果用户明确指定输出目录：写到用户指定目录
-- 如果当前目录是 skill 安装目录、`~/.claude/skills`、`~/.codex/skills`：禁止写入，必须切到用户工作目录或询问输出目录
-
-**禁止出现：**
-- `legado-book-source-generator/outputs/`
-- `legado-book-source-generator/runs/`
-- `~/.claude/skills/legado-book-source-generator/outputs/`
-- `~/.codex/skills/legado-book-source-generator/outputs/`
-
 ## 目录结构
 
 ```
@@ -29,18 +15,14 @@ runs/<site-slug>/
 ```
 
 - `outputs/` 只放可交付内容，即 `book-source.json`。
-- `runs/` 放 AI 生成过程、自检、分析记录，用于 AI 接力、故障回溯，不作为默认交付给用户的文件。
+- `runs/` 放 AI 生成过程、自检、分析记录，用于 AI 接力、故障回溯。
+- 输出目录和文件完整性由 `bsg.mjs init` 创建、`bsg.mjs check` 验证。
 
 ## book-source.json 要求
 
 - 顶层使用 JSON 数组
 - 单个书源也要用数组包裹：`[ { ... } ]`
-- **禁止空字符串可选字段** — 可选字段要么填有效值，要么删除，不得保留 `""`
-- 交付前必须完成以下验证：
-  1. `npm run validate` — JSON 结构校验
-  2. `node scripts/validate-with-validator.mjs` — 真实链路验证（search→detail→toc→content）
-  3. **必须保存 `validator-report.json`**（含 phases/error/ruleHits/bodyPreview），不能只写 summary
-- 只有 validator 报告 `status=passed`（无登录态特征或已完成登录态验证）才能标"可用"。匿名 `passed` 但站点有 loginUrl/enabledCookieJar/Authorization/webJs/webView 时，只能标 `anonymous_candidate`，不能标可用。
+- 可选字段要么填有效值，要么删除，不得保留 `""`
 
 ## 可用脚本
 
