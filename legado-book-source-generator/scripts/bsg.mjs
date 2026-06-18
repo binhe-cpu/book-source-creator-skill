@@ -410,12 +410,27 @@ function completePhase(phase, state, runDir) {
 
     // Login required but user hasn't logged in → block
     if (state.loginFeatures.hasEnabledCookieJar || state.loginFeatures.hasAuthorization) {
-      const adbOk = checkAdb();
-      saveRunState(runDir, state);
-      return {
-        ok: true,
-        nextAction: "stop",
-        requiredUserAction: "login_required",
+      // Check if Probe already has login cookies (user logged in via /login)
+      let probeLoggedIn = false;
+      if (checkAdb()) {
+        try {
+          const probeCheck = execSync("curl -s http://localhost:18888/cookie-check 2>&1", { encoding: "utf-8", timeout: 3000 });
+          const parsed = JSON.parse(probeCheck);
+          probeLoggedIn = parsed.hasCookies === true;
+        } catch { /* probe not available */ }
+      }
+      if (probeLoggedIn) {
+        // User already logged in via Probe → allow continue
+        state.loginFeatures._probeLoginVerified = true;
+        saveRunState(runDir, state);
+        // Fall through to normal completion
+      } else {
+        const adbOk = checkAdb();
+        saveRunState(runDir, state);
+        return {
+          ok: true,
+          nextAction: "stop",
+          requiredUserAction: "login_required",
         message: [
           "站点需要登录态（enabledCookieJar / Authorization），但尚未完成登录。",
           "",
@@ -440,6 +455,7 @@ function completePhase(phase, state, runDir) {
         adbAvailable: adbOk,
       };
     }
+    } // close outer login-features if
 
     // WebView/CSR detected during probe/assess → check Android device now
     if ((state.loginFeatures.hasWebView || state.loginFeatures.hasWebJs) && !checkAdb()) {
