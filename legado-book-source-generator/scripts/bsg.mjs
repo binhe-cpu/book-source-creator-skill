@@ -557,13 +557,16 @@ function completePhase(phase, state, runDir) {
       );
     }
 
-    // Rule: auth site MUST have enabledCookieJar + header or loginUrl
-    if (state.loginFeatures.hasEnabledCookieJar || state.loginFeatures.hasAuthorization) {
+    // Rule: auth site MUST have enabledCookieJar + loginUrl + header
+    if (state.loginFeatures.hasEnabledCookieJar || state.loginFeatures.hasAuthorization || source.enabledCookieJar) {
       if (!source.enabledCookieJar) {
-        structuralErrors.push("loginFeatures 标记了 enabledCookieJar/Authorization，但书源中 enabledCookieJar 为 false。需要登录态的站点必须设 enabledCookieJar: true。");
+        structuralErrors.push("loginFeatures 标记了登录态，但书源中 enabledCookieJar 为 false。需要登录态的站点必须设 enabledCookieJar: true。");
       }
-      if (!source.loginUrl && !source.header) {
-        structuralErrors.push("需要登录态但书源缺少 loginUrl 或 header。参考 examples/pattern-api-webview-auth/。");
+      if (!source.loginUrl) {
+        structuralErrors.push("enabledCookieJar 已启用但缺少 loginUrl。用户在 App 中无法登录。loginUrl 指向站点登录页 URL。");
+      }
+      if (!source.header) {
+        structuralErrors.push("enabledCookieJar 已启用但缺少 header。需用 <js>java.getCookie()</js> 动态注入登录凭据。参考 examples/pattern-api-webview-auth/。");
       }
     }
 
