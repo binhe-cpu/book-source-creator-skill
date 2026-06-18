@@ -1,8 +1,10 @@
 [
   {
     "bookSourceUrl": "https://login-example.com",
-    "bookSourceName": "示例需登录站点",
+    "bookSourceName": "登录态站点样例",
     "loginUrl": "https://login-example.com/login",
+    "enabledCookieJar": true,
+    "header": "{\"User-Agent\": \"Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36\"}",
     "searchUrl": "https://login-example.com/search?q={{key}}",
     "ruleSearch": {
       "bookList": ".search-list .book-item",
