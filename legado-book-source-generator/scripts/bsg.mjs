@@ -379,6 +379,25 @@ function completePhase(phase, state, runDir) {
       };
     }
 
+    // Login required but user hasn't logged in → block
+    if (state.loginFeatures.hasEnabledCookieJar || state.loginFeatures.hasAuthorization) {
+      saveRunState(runDir, state);
+      return {
+        ok: true,
+        nextAction: "stop",
+        requiredUserAction: "login_required",
+        message: [
+          "站点需要登录态（enabledCookieJar / Authorization），但尚未完成登录。",
+          "",
+          "请在 Browser MCP 中打开站点登录页，完成登录操作。",
+          "登录后回复「已登录」，AI 将提取 Cookie 并继续。",
+          "如果你没有该站账号，回复「无账号」——书源将标为 anonymous_candidate，需在 App 内手动登录。",
+        ].join("\n"),
+        blockingPhase: "assess",
+        reason: "login_required",
+      };
+    }
+
     // WebView/CSR detected during probe/assess → check Android device now
     if ((state.loginFeatures.hasWebView || state.loginFeatures.hasWebJs) && !checkAdb()) {
       saveRunState(runDir, state);
