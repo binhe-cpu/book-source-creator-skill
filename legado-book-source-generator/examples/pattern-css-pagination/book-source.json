@@ -7,6 +7,7 @@
   "customOrder": 0,
   "enabled": true,
   "enabledExplore": false,
+  "respondTime": 180000,
   "lastUpdateTime": 1773492000,
   "weight": 0,
   "searchUrl": "https://www.163zw.com/search.php?q={{key}}&p={{page}}",
