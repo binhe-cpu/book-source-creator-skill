@@ -71,7 +71,7 @@ runs/<site-slug>/
 4. **AI** 结合官方规则和模式矩阵生成 `book-source.json` 到 `outputs/`
 5. **AI** 用 validator 跑真实链路验证
 6. **AI** 若站点有 `loginUrl`、`enabledCookieJar`、`Authorization`、`webJs` 或 `webView`，匿名验证只算初筛；**人类** 提供登录凭据（手机扫码 / Token / Browser MCP Cookie）完成登录态复核
-7. **AI** validator 失败时自动回修规则（最多 3 次）
+7. **AI** validator 失败时自动回修规则（最多 5 次）
 8. 只有硬边界（验证码、Cloudflare、付费墙、Android WebView 不可用等）才需 **人类/App** 复核
 
 固定评级只有四种：`可直接生成` / `可生成但高风险` / `需登录后再评估` / `不建议生成`
@@ -174,7 +174,7 @@ cd legado-book-source-generator
 npm test
 ```
 
-57 个测试，覆盖三层：
+55 个测试，覆盖三层：
 
 | 层级 | 文件 | 覆盖内容 |
 |------|------|----------|
@@ -193,11 +193,13 @@ npm test
 | 样例 | 类型 | 关键特征 |
 |------|------|----------|
 | `163zw/` | 真实闭环 | 完整评估+分析+书源+验收 |
-| `69shuba-com/` | 冒烟测试 | POST搜索、目录嵌详情页、纯静态HTML |
+| `69shuba-com/` | 真实站点 | POST搜索、目录嵌详情页、纯静态HTML |
 | `static-html-site/` | 模板 | CSS选择器直接提取 |
 | `json-api-site/` | 模板 | REST接口，JSONPath提取 |
-| `webview-fallback-site/` | 模板 | 正文有签名，使用WebView模式 |
+| `webview-fallback-site/` | 模板 | 正文需WebView渲染 |
 | `login-required-site/` | 模板 | 需要登录态才能访问 |
+| `gbk-encoding-site/` | 模板 | GBK编码声明 |
+| `content-pagination-site/` | 模板 | 正文分页，nextContentUrl |
 
 样例不能替代实时站点实测，也不能直接复制到目标站点上套用。
 
