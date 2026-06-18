@@ -183,6 +183,8 @@ class WebViewRunner(private val context: Context) {
     suspend fun openLoginWebView(loginUrl: String): LoginSessionResponse = withContext(Dispatchers.Main) {
         status("登录页: ${loginUrl.take(50)}")
         val webView = android.webkit.WebView(context).apply {
+            isHorizontalScrollBarEnabled = true
+            isVerticalScrollBarEnabled = true
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
@@ -190,12 +192,10 @@ class WebViewRunner(private val context: Context) {
                 blockNetworkImage = false
                 userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                 databaseEnabled = true
-                // Viewport/zoom for login pages
                 useWideViewPort = true
                 loadWithOverviewMode = true
                 builtInZoomControls = true
-                displayZoomControls = false  // hide +/- buttons, keep pinch
-                setSupportZoom(true)
+                displayZoomControls = true
             }
         }
         webView.webViewClient = object : WebViewClient() {
