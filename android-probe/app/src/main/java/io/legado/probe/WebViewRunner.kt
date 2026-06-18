@@ -16,9 +16,15 @@ class WebViewRunner(private val context: Context) {
 
     private val handler = Handler(Looper.getMainLooper())
 
+    private fun status(msg: String) {
+        WebViewProbeActivity.instance?.updateStatus(msg)
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     suspend fun render(request: RenderRequest): RenderResponse = withContext(Dispatchers.Main) {
         val startTime = System.currentTimeMillis()
+        val shortUrl = request.url.take(80)
+        status("加载: $shortUrl")
         try {
             withTimeout(request.timeout) {
                 suspendCancellableCoroutine { cont ->
@@ -34,6 +40,7 @@ class WebViewRunner(private val context: Context) {
 
                     webView.webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView, url: String?) {
+                            status("页面加载完成，执行 JS...")
                             val cookies = CookieManager.getInstance().getCookie(url)
                             handler.postDelayed({
                                 executeJsAndFinish(
@@ -83,8 +90,10 @@ class WebViewRunner(private val context: Context) {
                 }
             }
         } catch (e: TimeoutCancellationException) {
+            status("超时: ${request.timeout}ms")
             RenderResponse(ok = false, error = "Timeout after ${request.timeout}ms", loadTimeMs = request.timeout)
         } catch (e: Exception) {
+            status("错误: ${e.message}")
             RenderResponse(ok = false, error = "${e::class.simpleName}: ${e.message}")
         }
     }
@@ -101,6 +110,7 @@ class WebViewRunner(private val context: Context) {
             webView.evaluateJavascript(js) { result ->
                 val html = result?.removeSurrounding("\"")?.unescapeJson()
                 if (!html.isNullOrEmpty() && html != "null") {
+                    status("提取完成: ${html.length} 字符")
                     val screenshot = if (request.screenshot) captureScreenshot(webView) else null
                     if (!cont.isCompleted) {
                         cont.resume(
