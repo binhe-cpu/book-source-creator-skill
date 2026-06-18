@@ -83,6 +83,24 @@ else:
     status = "needs_app_review"  // 保守判定
 ```
 
+## 手动验证（脚本故障时）
+
+如果 `validate-with-validator.mjs` 不可用，直接 curl API：
+
+```bash
+# 导入书源
+curl -X POST http://localhost:1111/api/source/import \
+  -H "Content-Type: application/json" \
+  -d @outputs/<slug>/book-source.json
+
+# 运行验证
+curl -X POST http://localhost:1111/api/debug/run \
+  -H "Content-Type: application/json" \
+  -d '{"sourceUrl":"https://...","keyword":"关键词","mode":"http"}'
+```
+
+结果判断：`phases` 全部 `success` → 通过。`content` 阶段 `error` + bodyPreview 是 JS 壳 → CSR，需 WebView。
+
 ## 前置检查
 
 调用 validator 前，先检查是否运行：
